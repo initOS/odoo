@@ -1305,6 +1305,9 @@ class Binary(openerpweb.Controller):
             fields.append(filename_field)
         if data:
             res = { field: data }
+            if filename_field and id:
+                filename_name = Model.read([int(id)], [filename_field], context)
+                res[filename_field] = filename_name and filename_name[0] and filename_name[0][filename_field] or ''
         elif id:
             res = Model.read([int(id)], fields, context)[0]
         else:
