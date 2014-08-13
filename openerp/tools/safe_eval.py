@@ -155,7 +155,7 @@ def test_expr(expr, allowed_codes, mode="eval"):
         if mode == 'eval':
             # eval() does not like leading/trailing whitespace
             expr = expr.strip()
-        code_obj = compile(expr, "", mode)
+        code_obj = compile(expr, "<string>", mode)
     except (SyntaxError, TypeError, ValueError):
         _logger.debug('Invalid eval expression', exc_info=True)
         raise
