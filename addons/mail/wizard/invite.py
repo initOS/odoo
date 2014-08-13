@@ -23,6 +23,12 @@ from openerp import tools
 from openerp.osv import osv
 from openerp.osv import fields
 from openerp.tools.translate import _
+from openerp import SUPERUSER_ID
+from openerp.osv.orm import except_orm
+import logging
+from urllib import urlencode
+from urlparse import urljoin
+
 
 
 class invite_wizard(osv.osv_memory):
@@ -50,7 +56,7 @@ class invite_wizard(osv.osv_memory):
         'message': fields.html('Message'),
     }
 
-    def add_followers(self, cr, uid, ids, context=None):
+    def add_followers(self, cr, uid, ids,mail,thread_id=None, context=None):
         for wizard in self.browse(cr, uid, ids, context=context):
             model_obj = self.pool.get(wizard.res_model)
             document = model_obj.browse(cr, uid, wizard.res_id, context=context)
@@ -66,9 +72,22 @@ class invite_wizard(osv.osv_memory):
                 signature = user_id and user_id["signature"] or ''
                 if signature:
                     wizard.message = tools.append_content_to_html(wizard.message, signature, plaintext=True, container_tag='div')
-                # FIXME 8.0: use notification_email_send, send a wall message and let mail handle email notification + message box
+                if wizard.partner_ids:
+                    base_url = self.pool.get('ir.config_parameter').get_param(cr, uid, 'web.base.url')
+                    query = {'db': cr.dbname}
+                    related_user = wizard.partner_ids[0].user_id
+                    fragment = {
+                        'login': related_user.login,
+                        'model': mail.get('default_res_model'),
+                        'id': mail.get('default_res_id'),
+                    }
+                    url = urljoin(base_url, "?%s#%s" % (urlencode(query), urlencode(fragment)))
+                    text = _("""<p>Access this document <a href="%s">directly in OpenERP</a></p>""") % url
+                    body = tools.append_content_to_html(wizard.message, ("<div><p>%s</p></div>" % text), plaintext=False)
+                    msg_id =  model_obj.message_post(cr, uid,thread_id,body=body,type='comment',context=context)
+                    model_obj.pool.get('mail.notification')._notify(cr, uid, msg_id,new_follower_ids, context=context)
+                mail_mail = self.pool.get('mail.mail')
                 for follower_id in new_follower_ids:
-                    mail_mail = self.pool.get('mail.mail')
                     # the invite wizard should create a private message not related to any object -> no model, no res_id
                     mail_id = mail_mail.create(cr, uid, {
                         'model': wizard.res_model,
