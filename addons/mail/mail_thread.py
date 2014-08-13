@@ -197,9 +197,14 @@ class mail_thread(osv.AbstractModel):
     def _search_followers(self, cr, uid, obj, name, args, context):
         fol_obj = self.pool.get('mail.followers')
         res = []
+        negative_operator = {'not ilike':'ilike', '!=':'='}
         for field, operator, value in args:
             assert field == name
             fol_ids = fol_obj.search(cr, SUPERUSER_ID, [('res_model', '=', self._name), ('partner_id', operator, value)])
+            if operator in negative_operator.keys():
+                fol_ids = fol_obj.search(cr, SUPERUSER_ID, [('res_model', '=', self._name), ('partner_id', negative_operator[operator], value)])
+                res_id = [fol.res_id for fol in fol_obj.browse(cr, SUPERUSER_ID, fol_ids)]
+                fol_ids = fol_obj.search(cr, SUPERUSER_ID, [('res_id', 'not in', res_id)])
             res_ids = [fol.res_id for fol in fol_obj.browse(cr, SUPERUSER_ID, fol_ids)]
             res.append(('id', 'in', res_ids))
         return res
