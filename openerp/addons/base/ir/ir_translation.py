@@ -149,7 +149,7 @@ class ir_translation(osv.osv):
     _name = "ir.translation"
     _log_access = False
 
-    def _get_language(self, cr, uid, context):
+    def _get_language(self, cr, uid, context=None):
         lang_model = self.pool.get('res.lang')
         lang_ids = lang_model.search(cr, uid, [('translatable', '=', True)], context=context)
         lang_data = lang_model.read(cr, uid, lang_ids, ['code', 'name'], context=context)
@@ -427,7 +427,7 @@ class ir_translation(osv.osv):
         """
         return ir_translation_import_cursor(cr, uid, self, context=context)
 
-    def load(self, cr, modules, langs, context=None):
+    def load_translation(self, cr, modules, langs, context=None):
         context = dict(context or {}) # local copy
         for module_name in modules:
             modpath = openerp.modules.get_module_path(module_name)
