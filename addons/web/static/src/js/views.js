@@ -787,9 +787,12 @@ instance.web.ViewManager =  instance.web.Widget.extend({
         }).done(function (results) {
             self.dataset._model = new instance.web.Model(
                 self.dataset.model, results.context, results.domain);
+            var default_groupby = (self.dataset.model === action_context.active_model)
+                ? action_context.group_by
+                : [];
             var groupby = results.group_by.length
                         ? results.group_by
-                        : action_context.group_by;
+                        : default_groupby;
             if (_.isString(groupby)) {
                 groupby = [groupby];
             }
