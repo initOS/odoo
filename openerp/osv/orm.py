@@ -1239,6 +1239,9 @@ class BaseModel(object):
         """
         if context is None:
             context = {}
+        if not context.get('lang'):
+            lang = self.pool.get('res.users').browse(cr, uid, uid, context=context).lang
+            context.update({'lang': lang})
         cols = self._columns.copy()
         for f in self._inherit_fields:
             cols.update({f: self._inherit_fields[f][2]})
