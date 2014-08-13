@@ -336,8 +336,10 @@ class WebKitParser(report_sxw):
     def _sanitize_html(self, html):
         """wkhtmltopdf expects the html page to declare a doctype.
         """
-        if html and html[:9].upper() != "<!DOCTYPE":
-            html = "<!DOCTYPE html>\n" + html
+        # doctype declaration is required for latest version of wkhtmltopdf (current date 2014-04-04).
+        # nevertheless doctype declaration destroys the design older reports, so it's uncommented
+        # if html and html[:9].upper() != "<!DOCTYPE":
+        #     html = "<!DOCTYPE html>\n" + html
         return html
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
