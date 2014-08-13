@@ -20,7 +20,13 @@
 #
 ##############################################################################
 
+import logging
+
 from openerp.osv import fields, osv
+from openerp import tools
+import lxml.html.clean as clean
+
+_logger = logging.getLogger(__name__)
 
 class email_template_preview(osv.osv_memory):
     _inherit = "email.template"
@@ -77,7 +83,25 @@ class email_template_preview(osv.osv_memory):
         vals['name'] = template.name
         mail_values = email_template.generate_email(cr, uid, template_id, res_id, context=context)
         for k in ('email_from','email_to','email_cc','reply_to','subject','body_html'):
-            vals[k] = mail_values[k]
+            vals[k] = mail_values[k] if k != 'body_html' else self.html_sanitize(cr, uid, ids, mail_values[k], context=context)
         return {'value': vals}
+
+    def html_sanitize(self, cr, uid, ids, src, context=None):
+        tags_to_kill = ["script"]
+        if not src:
+            return src
+        src = tools.ustr(src, errors='replace')
+
+        try:
+            cleaner = clean.Cleaner(page_structure=True, style=False, safe_attrs_only=False, forms=False, kill_tags=tags_to_kill, remove_tags=False)
+            cleaned = cleaner.clean_html(src)
+        except TypeError, e:
+            # lxml.clean version < 2.3.1 does not have a kill_tags attribute
+            cleaner = clean.Cleaner(page_structure=True, style=False, safe_attrs_only=False, forms=False, remove_tags=tags_to_kill)
+            cleaned = cleaner.clean_html(src)
+        except:
+            _logger.warning('html_sanitize failed to parse %s' % (src))
+            cleaned = '<p>Impossible to parse</p>'
+        return cleaned
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
