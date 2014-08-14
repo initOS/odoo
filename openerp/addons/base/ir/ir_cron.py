@@ -167,7 +167,7 @@ class ir_cron(osv.osv):
             if not numbercall:
                 addsql = ', active=False'
             cron_cr.execute("UPDATE ir_cron SET nextcall=%s, numbercall=%s"+addsql+" WHERE id=%s",
-                       (nextcall.strftime(DEFAULT_SERVER_DATETIME_FORMAT), numbercall, job['id']))
+                       (nextcall.astimezone(pytz.UTC).strftime(DEFAULT_SERVER_DATETIME_FORMAT), numbercall, job['id']))
 
         finally:
             job_cr.commit()
