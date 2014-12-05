@@ -721,7 +721,7 @@ class pos_order(osv.osv):
                     'picking_id': picking_id,
                     'product_id': line.product_id.id,
                     'product_uos_qty': abs(line.qty),
-                    'product_qty': line.qty * (line.product_id.uos_id and line.product_id.uos_coeff or 1),
+                    'product_qty': abs(line.qty) * (line.product_id.uos_id and line.product_id.uos_coeff or 1),
                     'tracking_id': False,
                     'state': 'draft',
                     'location_id': location_id if line.qty >= 0 else destination_id,
