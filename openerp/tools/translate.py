@@ -56,7 +56,7 @@ _LOCALE2WIN32 = {
     'ar_SA': 'Arabic_Saudi Arabia',
     'eu_ES': 'Basque_Spain',
     'be_BY': 'Belarusian_Belarus',
-    'bs_BA': 'Serbian (Latin)',
+    'bs_BA': 'Bosnian_Bosnia and Herzegovina',
     'bg_BG': 'Bulgarian_Bulgaria',
     'ca_ES': 'Catalan_Spain',
     'hr_HR': 'Croatian_Croatia',
@@ -830,7 +830,7 @@ def trans_generate(lang, modules, cr):
     def get_module_paths():
         # default addons path (base)
         def_path = os.path.abspath(os.path.join(config.config['root_path'], 'addons'))
-        mod_paths = { def_path }
+        mod_paths = set([ def_path ])
         ad_paths = map(lambda m: os.path.abspath(m.strip()),config.config['addons_path'].split(','))
         for adp in ad_paths:
             mod_paths.add(adp)
@@ -838,7 +838,7 @@ def trans_generate(lang, modules, cr):
                 mod_paths.add(adp)
             elif adp != def_path and adp.startswith(def_path):
                 mod_paths.add(adp[len(def_path)+1:])
-        return mod_paths
+        return list(mod_paths)
 
     def get_module_from_path(path, mod_paths):
         for mp in mod_paths:

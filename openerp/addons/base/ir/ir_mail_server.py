@@ -24,7 +24,7 @@ from email.MIMEBase import MIMEBase
 from email.MIMEMultipart import MIMEMultipart
 from email.Charset import Charset
 from email.Header import Header
-from email.Utils import formatdate, make_msgid, COMMASPACE
+from email.utils import formatdate, make_msgid, COMMASPACE, getaddresses, formataddr
 from email import Encoders
 import logging
 import re
@@ -118,6 +118,7 @@ def encode_header_param(param_text):
     return param_text_ascii if param_text_ascii\
          else Charset('utf8').header_encode(param_text_utf8)
 
+# TODO master, remove me, no longer used internaly
 name_with_email_pattern = re.compile(r'("[^<@>]+")\s*<([^ ,<@]+@[^> ,]+)>')
 address_pattern = re.compile(r'([^ ,<@]+@[^> ,]+)')
 
@@ -137,32 +138,22 @@ def encode_rfc2822_address_header(header_text):
        ``"Name"`` portion by the RFC2047-encoded
        version, preserving the address part untouched.
     """
-    header_text_utf8 = tools.ustr(header_text).encode('utf-8')
-    header_text_ascii = try_coerce_ascii(header_text_utf8)
-    if header_text_ascii:
-        return header_text_ascii
-    # non-ASCII characters are present, attempt to
-    # replace all "Name" patterns with the RFC2047-
-    # encoded version
-    def replace(match_obj):
-        name, email = match_obj.group(1), match_obj.group(2)
-        name_encoded = str(Header(name, 'utf-8'))
-        return "%s <%s>" % (name_encoded, email)
-    header_text_utf8 = name_with_email_pattern.sub(replace,
-                                                   header_text_utf8)
-    # try again after encoding
-    header_text_ascii = try_coerce_ascii(header_text_utf8)
-    if header_text_ascii:
-        return header_text_ascii
-    # fallback to extracting pure addresses only, which could
-    # still cause a failure downstream if the actual addresses
-    # contain non-ASCII characters
-    return COMMASPACE.join(extract_rfc2822_addresses(header_text_utf8))
+    def encode_addr(addr):
+        name, email = addr
+        if not try_coerce_ascii(name):
+            name = str(Header(name, 'utf-8'))
+        return formataddr((name, email))
 
- 
+    addresses = getaddresses([tools.ustr(header_text).encode('utf-8')])
+    return COMMASPACE.join(map(encode_addr, addresses))
+
+
 class ir_mail_server(osv.osv):
     """Represents an SMTP server, able to send outgoing emails, with SSL and TLS capabilities."""
     _name = "ir.mail_server"
+
+    NO_VALID_RECIPIENT = ("At least one valid recipient address should be "
+                          "specified for outgoing emails (To/Cc/Bcc)")
 
     _columns = {
         'name': fields.char('Description', size=64, required=True, select=True),
@@ -410,7 +401,7 @@ class ir_mail_server(osv.osv):
         email_cc = message['Cc']
         email_bcc = message['Bcc']
         smtp_to_list = filter(None, tools.flatten(map(extract_rfc2822_addresses,[email_to, email_cc, email_bcc])))
-        assert smtp_to_list, "At least one valid recipient address should be specified for outgoing emails (To/Cc/Bcc)"
+        assert smtp_to_list, self.NO_VALID_RECIPIENT
 
         # Do not actually send emails in testing mode!
         if getattr(threading.currentThread(), 'testing', False):

@@ -28,7 +28,7 @@ class sale_advance_payment_inv(osv.osv_memory):
 
     _columns = {
         'advance_payment_method':fields.selection(
-            [('all', 'Invoice the whole sales order'), ('percentage','Percentage'), ('fixed','Fixed price (deposit)'),
+            [('all', 'Invoice the whole sales order'), ('percentage', 'Percentage'), ('fixed', 'Fixed price (deposit)'),
                 ('lines', 'Some order lines')],
             'What do you want to invoice?', required=True,
             help="""Use All to create the final invoice.
@@ -40,7 +40,7 @@ class sale_advance_payment_inv(osv.osv_memory):
             domain=[('type', '=', 'service')],
             help="""Select a product of type service which is called 'Advance Product'.
                 You may have to create it and set it as a default value on this field."""),
-        'amount': fields.float('Advance Amount', digits_compute= dp.get_precision('Account'),
+        'amount': fields.float('Advance Amount', digits_compute=dp.get_precision('Account'),
             help="The amount to be invoiced in advance."),
     }
 
@@ -57,6 +57,9 @@ class sale_advance_payment_inv(osv.osv_memory):
         'qtty': 1.0,
         'product_id': _get_advance_product,
     }
+
+    def _translate_advance(self, cr, uid, percentage=False, context=None):
+        return _("Advance of %s %%") if percentage else _("Advance of %s %s")
 
     def onchange_method(self, cr, uid, ids, advance_payment_method, product_id, context=None):
         if advance_payment_method == 'percentage':
@@ -111,12 +114,13 @@ class sale_advance_payment_inv(osv.osv_memory):
                 # determine invoice amount
                 inv_amount = wizard.amount
                 if not res.get('name'):
-                    #TODO: should find a way to call formatLang() from rml_parse
+                    # TODO: should find a way to call formatLang() from rml_parse
                     symbol = sale.pricelist_id.currency_id.symbol
                     if sale.pricelist_id.currency_id.position == 'after':
-                        res['name'] = _("Advance of %s %s") % (inv_amount, symbol)
+                        symbol_order = (inv_amount, symbol)
                     else:
-                        res['name'] = _("Advance of %s %s") % (symbol, inv_amount)
+                        symbol_order = (symbol, inv_amount)
+                    res['name'] = self._translate_advance(cr, uid, context=dict(context, lang=sale.partner_id.lang)) % symbol_order
 
                 # determine taxes
                 if res.get('invoice_line_tax_id'):
@@ -162,7 +166,6 @@ class sale_advance_payment_inv(osv.osv_memory):
         sale_obj.write(cr, uid, sale_id, {'invoice_ids': [(4, inv_id)]}, context=context)
         return inv_id
 
-
     def create_invoices(self, cr, uid, ids, context=None):
         """ create invoices for the active sales orders """
         sale_obj = self.pool.get('sale.order')
@@ -191,7 +194,7 @@ class sale_advance_payment_inv(osv.osv_memory):
             inv_ids.append(self._create_invoices(cr, uid, inv_values, sale_id, context=context))
 
         if context.get('open_invoices', False):
-            return self.open_invoices( cr, uid, ids, inv_ids, context=context)
+            return self.open_invoices(cr, uid, ids, inv_ids, context=context)
         return {'type': 'ir.actions.act_window_close'}
 
     def open_invoices(self, cr, uid, ids, invoice_ids, context=None):
