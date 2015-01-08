@@ -367,6 +367,11 @@ class datetime(_column):
                               exc_info=True)
         return utc_timestamp
 
+    @classmethod
+    def _as_display_name(cls, field, cr, uid, obj, value, context=None):
+        value = datetime.context_timestamp(cr, uid, DT.datetime.strptime(value, tools.DEFAULT_SERVER_DATETIME_FORMAT), context=context)
+        return tools.ustr(value.strftime(tools.DEFAULT_SERVER_DATETIME_FORMAT))
+
 class binary(_column):
     _type = 'binary'
     _symbol_c = '%s'
@@ -1145,9 +1150,9 @@ class function(_column):
         # if we already have a value, don't recompute it.
         # This happen if case of stored many2one fields
         if values and not multi and name in values[0]:
-            result = {v['id']: v[name] for v in values}
+            result = dict((v['id'], v[name]) for v in values)
         elif values and multi and all(n in values[0] for n in name):
-            result = {v['id']: dict((n, v[n]) for n in name) for v in values}
+            result = dict((v['id'], dict((n, v[n]) for n in name)) for v in values)
         else:
             result = self._fnct(obj, cr, uid, ids, name, self._arg, context)
         for id in ids:
