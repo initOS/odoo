@@ -22,8 +22,6 @@ _logger = logging.getLogger(__name__)
 magic_md5 = '$1$'
 magic_sha256 = '$5$'
 
-openerp.addons.base.res.res_users.USER_PRIVATE_FIELDS.append('password_crypt')
-
 def gen_salt(length=8, symbols=None):
     if symbols is None:
         symbols = ascii_letters + digits
