@@ -145,12 +145,12 @@ class OdooDocker(object):
     def __init__(self):
         self.log_file = NamedTemporaryFile(mode='w+b', prefix="bash", suffix=".txt", delete=False)
         self.port = 8069  # TODO sle: reliable way to get a free port?
-        self.prompt_re = '(\r\nroot@|bash-).*# '
+        self.prompt_re = '[root@nightly-tests] # '
         self.timeout = 1000
 
     def system(self, command):
         self.docker.sendline(command)
-        self.docker.expect(self.prompt_re)
+        self.docker.expect_exact(self.prompt_re)
 
     def start(self, docker_image, build_dir, pub_dir):
         self.build_dir = build_dir
@@ -159,7 +159,8 @@ class OdooDocker(object):
         self.docker = pexpect.spawn(
             'docker run -v %s:/opt/release -p 127.0.0.1:%s:8069'
             ' -t -i %s /bin/bash --noediting' % (self.build_dir, self.port, docker_image),
-            timeout=self.timeout
+            timeout=self.timeout,
+            searchwindowsize=len(self.prompt_re) + 1,
         )
         time.sleep(2)  # let the bash start
         self.docker.logfile_read = self.log_file
@@ -304,20 +305,20 @@ def _prepare_testing(o):
         subprocess.call(["mkdir", "docker_debian"], cwd=o.build_dir)
         subprocess.call(["cp", "package.dfdebian", os.path.join(o.build_dir, "docker_debian", "Dockerfile")],
                         cwd=os.path.join(o.odoo_dir, "setup"))
-        subprocess.call(["docker", "build", "-t", "openerp-debian-nightly-tests", "."],
+        subprocess.call(["docker", "build", "-t", "openerp-%s-debian-nightly-tests" % version, "."],
                         cwd=os.path.join(o.build_dir, "docker_debian"))
     if not o.no_rpm:
         subprocess.call(["mkdir", "docker_centos"], cwd=o.build_dir)
         subprocess.call(["cp", "package.dfcentos", os.path.join(o.build_dir, "docker_centos", "Dockerfile")],
                         cwd=os.path.join(o.odoo_dir, "setup"))
-        subprocess.call(["docker", "build", "-t", "openerp-centos-nightly-tests", "."],
+        subprocess.call(["docker", "build", "-t", "openerp-%s-centos-nightly-tests" % version, "."],
                         cwd=os.path.join(o.build_dir, "docker_centos"))
 
 def test_tgz(o):
-    with docker('openerp-debian-nightly-tests', o.build_dir, o.pub) as wheezy:
+    with docker('openerp-%s-debian-nightly-tests' % version, o.build_dir, o.pub) as wheezy:
         wheezy.release = 'openerp.tar.gz'
         wheezy.system("service postgresql start")
-        wheezy.system('/usr/local/bin/pip install /opt/release/%s' % wheezy.release)
+        wheezy.system('pip install --no-deps /opt/release/%s' % wheezy.release)
         wheezy.system("useradd --system --no-create-home openerp")
         wheezy.system('su postgres -s /bin/bash -c "createuser -s openerp"')
         wheezy.system('su postgres -s /bin/bash -c "createdb mycompany"')
@@ -327,7 +328,7 @@ def test_tgz(o):
         wheezy.system('su openerp -s /bin/bash -c "openerp-server --addons-path=/usr/local/lib/python2.7/dist-packages/openerp/addons -d mycompany &"')
 
 def test_deb(o):
-    with docker('openerp-debian-nightly-tests', o.build_dir, o.pub) as wheezy:
+    with docker('openerp-%s-debian-nightly-tests' % version, o.build_dir, o.pub) as wheezy:
         wheezy.release = '*.deb'
         wheezy.system("service postgresql start")
         wheezy.system('su postgres -s /bin/bash -c "createdb mycompany"')
@@ -337,7 +338,7 @@ def test_deb(o):
         wheezy.system('su openerp -s /bin/bash -c "openerp-server -c /etc/openerp/openerp-server.conf -d mycompany &"')
 
 def test_rpm(o):
-    with docker('openerp-centos-nightly-tests', o.build_dir, o.pub) as centos6:
+    with docker('openerp-%s-centos-nightly-tests' % version, o.build_dir, o.pub) as centos6:
         centos6.release = 'openerp.noarch.rpm'
         # Start postgresql
         centos6.system('su postgres -c "/usr/bin/pg_ctl -D /var/lib/postgres/data start"')
