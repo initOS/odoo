@@ -140,7 +140,7 @@ from openerp.osv import fields
 from openerp.osv.orm import MAGIC_COLUMNS
 import openerp.tools as tools
 
-#.apidoc title: Domain Expressions
+# .apidoc title: Domain Expressions
 
 # Domain operators.
 NOT_OPERATOR = '!'
@@ -187,11 +187,11 @@ def normalize_domain(domain):
     if not domain:
         return TRUE_DOMAIN
     result = []
-    expected = 1                            # expected number of expressions
+    expected = 1  # expected number of expressions
     op_arity = {NOT_OPERATOR: 1, AND_OPERATOR: 2, OR_OPERATOR: 2}
     for token in domain:
-        if expected == 0:                   # more than expected, like in [A, B]
-            result[0:0] = [AND_OPERATOR]             # put an extra '&' in front
+        if expected == 0:  # more than expected, like in [A, B]
+            result[0:0] = [AND_OPERATOR]  # put an extra '&' in front
             expected = 1
         result.append(token)
         if isinstance(token, (list, tuple)):  # domain term
@@ -916,7 +916,7 @@ class expression(object):
                             ids2 = right
                     if not ids2:
                         if operator in ['like', 'ilike', 'in', '=']:
-                            #no result found with given search criteria
+                            # no result found with given search criteria
                             call_null = False
                             push(create_substitution_leaf(leaf, FALSE_LEAF, working_model))
                     else:
@@ -932,7 +932,7 @@ class expression(object):
 
             elif field._type == 'many2many':
                 rel_table, rel_id1, rel_id2 = field._sql_names(working_model)
-                #FIXME
+                # FIXME
                 if operator == 'child_of':
                     def _rec_convert(ids):
                         if relational_model == working_model:
@@ -957,7 +957,7 @@ class expression(object):
                                 res_ids = right
                         if not res_ids:
                             if operator in ['like', 'ilike', 'in', '=']:
-                                #no result found with given search criteria
+                                # no result found with given search criteria
                                 call_null_m2m = False
                                 push(create_substitution_leaf(leaf, FALSE_LEAF, working_model))
                             else:
@@ -986,7 +986,7 @@ class expression(object):
                             context = {}
                         c = context.copy()
                         c['active_test'] = False
-                        #Special treatment to ill-formed domains
+                        # Special treatment to ill-formed domains
                         operator = (operator in ['<', '>', '<=', '>=']) and 'in' or operator
 
                         dict_op = {'not in': '!=', 'in': '=', '=': 'in', '!=': 'not in'}
@@ -1053,7 +1053,7 @@ class expression(object):
                                         it.value != '')
                             ) 
                             SELECT id FROM temp_irt_current WHERE {name} {operator} {right} order by name
-                            """.format(current_table=working_model._table, quote_left=_quote(left), name=unaccent('name'), 
+                            """.format(current_table=working_model._table, quote_left=_quote(left), name=unaccent('name'),
                                        operator=sql_operator, right=instr)
 
                     params = (
