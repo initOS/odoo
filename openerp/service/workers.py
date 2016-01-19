@@ -23,6 +23,7 @@ except ImportError:
 
 import openerp
 import openerp.tools.config as config
+from openerp.tools.misc import dumpstacks
 
 _logger = logging.getLogger(__name__)
 
@@ -291,6 +292,7 @@ class Worker(object):
         # reset blocking status
         self.multi.socket.setblocking(0)
         signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGQUIT, dumpstacks)
         signal.signal(signal.SIGTERM, signal.SIG_DFL)
         signal.signal(signal.SIGCHLD, signal.SIG_DFL)
 

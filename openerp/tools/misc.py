@@ -42,6 +42,7 @@ from itertools import islice, izip, groupby
 from lxml import etree
 from which import which
 from threading import local
+import traceback
 
 try:
     from html2text import html2text
@@ -1098,5 +1099,31 @@ def stripped_sys_argv(*strip_args):
             or (i >= 1 and (args[i - 1] in strip_args) and takes_value[args[i - 1]])
 
     return [x for i, x in enumerate(args) if not strip(args, i)]
+
+def dumpstacks(sig=None, frame=None):
+    """ Signal handler: dump a stack trace for each existing thread."""
+    code = []
+
+    def extract_stack(stack):
+        for filename, lineno, name, line in traceback.extract_stack(stack):
+            yield 'File: "%s", line %d, in %s' % (filename, lineno, name)
+            if line:
+                yield "  %s" % (line.strip(),)
+
+    # code from http://stackoverflow.com/questions/132058/getting-stack-trace-from-a-running-python-application#answer-2569696
+    # modified for python 2.5 compatibility
+    threads_info = dict([(th.ident, {'name': th.name, 'uid': getattr(th, 'uid', 'n/a')})
+                        for th in threading.enumerate()])
+    for threadId, stack in sys._current_frames().items():
+        thread_info = threads_info.get(threadId)
+        code.append("\n# Thread: %s (id:%s) (uid:%s)" %
+                    (thread_info and thread_info['name'] or 'n/a',
+                     threadId,
+                     thread_info and thread_info['uid'] or 'n/a'))
+        for line in extract_stack(stack):
+            code.append(line)
+
+    _logger.info("\n".join(code))
+
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
