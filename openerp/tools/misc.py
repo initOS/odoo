@@ -26,6 +26,7 @@ Miscellaneous tools used by OpenERP.
 """
 
 from functools import wraps
+import cPickle
 import cProfile
 from contextlib import contextmanager
 import subprocess
@@ -1298,5 +1299,22 @@ if parse_version(getattr(werkzeug, '__version__', '0.0')) < parse_version('0.9.0
 else:
     def html_escape(text):
         return werkzeug.utils.escape(text)
+
+class Pickle(object):
+    @classmethod
+    def load(cls, stream):
+        unpickler = cPickle.Unpickler(stream)
+        # pickle builtins: str/unicode, int/long, float, bool, tuple, list, dict, None
+        unpickler.find_global = None
+        return unpickler.load()
+
+    @classmethod
+    def loads(cls, text):
+        return cls.load(StringIO(text))
+
+    dumps = cPickle.dumps
+    dump = cPickle.dump
+
+pickle = Pickle
 
 # vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
