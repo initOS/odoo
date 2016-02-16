@@ -1727,6 +1727,9 @@ class BaseModel(object):
         fields = {}
         children = True
 
+        if isinstance(node, SKIPPED_ELEMENT_TYPES):
+            return fields
+
         modifiers = {}
 
         def encode(s):
