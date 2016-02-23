@@ -38,6 +38,7 @@ import threading
 import time
 import werkzeug.utils
 import zipfile
+from cStringIO import StringIO
 from collections import defaultdict, Mapping
 from datetime import datetime
 from itertools import islice, izip, groupby
