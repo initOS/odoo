@@ -706,11 +706,15 @@ openerp.mail = function (session) {
                     var thread = thread.parent_message.parent_thread;
                 }
                 // create object and attach to the thread object
+                //thread.message_fetch();
+                self.getParent().getParent().getParent().view.reload();
+                /*
                 thread.message_fetch([["id", "=", message_id]], false, [message_id], function (arg, data) {
                     var message = thread.create_message_object( data.slice(-1)[0] );
                     // insert the message on dom
                     thread.insert_message( message, root ? undefined : self.$el, root );
                 });
+                */
                 self.on_cancel();
                 self.flag_post = false;
             });
