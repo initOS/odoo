@@ -213,7 +213,7 @@ class WebKitParser(report_sxw):
     def translate_call(self, parser_instance, src):
         """Translate String."""
         ir_translation = self.pool['ir.translation']
-        name = self.tmpl and 'addons/' + self.tmpl or None
+        name = self.tmpl and self.tmpl or None
         res = ir_translation._get_source(parser_instance.cr, parser_instance.uid,
                                          name, 'report', parser_instance.localcontext.get('lang', 'en_US'), src)
         if res == src:
