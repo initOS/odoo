@@ -77,7 +77,7 @@
             <tr>
                 <td>Mail: ${company.partner_id.email or ''}<br/></td>
             </tr>
-        </table> ${_debug or ''|safe} </body>
+        </table> ${_debug or ''|n} </body>
 </html>]]>
 </field>
             <field eval="55.0" name="margin_top"/>
