@@ -835,6 +835,15 @@ class BaseModel(object):
             else:
                 for key, val in vals.items():
                     if cols[k][key] != vals[key]:
+                        if type(cols[k][key]) != type(vals[key]) \
+                                and cols[k][key] is not None \
+                                and vals[key] is not None:
+                            _logger.warning(
+                                "TYPE MISMATCH: %s(%s) vs. %s(%s)" % (
+                                    type(cols[k][key]), repr(cols[k][key]),
+                                    type(vals[key]), repr(vals[key])
+                                )
+                            )
                         cr.execute('update ir_model_fields set field_description=%s where model=%s and name=%s', (vals['field_description'], vals['model'], vals['name']))
                         cr.execute("""UPDATE ir_model_fields SET
                             model_id=%s, field_description=%s, ttype=%s, relation=%s,

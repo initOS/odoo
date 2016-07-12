@@ -193,6 +193,16 @@ class WebKitParser(report_sxw):
             # no translation defined, fallback on None (backward compatibility)
             res = ir_translation._get_source(parser_instance.cr, parser_instance.uid,
                                              None, 'report', parser_instance.localcontext.get('lang', 'en_US'), src)
+        else:
+            if type(res) != type(src) \
+                    and res is not None \
+                    and src is not None:
+                _logger.warning(
+                    "TYPE MISMATCH: %s(%s) vs. %s(%s)" % (
+                        type(res), repr(res),
+                        type(src), repr(src)
+                    )
+                )
         if not res :
             return src
         return res
