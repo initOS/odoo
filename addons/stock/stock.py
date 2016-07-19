@@ -1272,6 +1272,15 @@ class stock_picking(osv.osv):
                         product_avail[product.id] = product.qty_available
 
                     if qty > 0:
+                        po_obj = self.pool['purchase.order']
+                        inv_line = po_obj._prepare_inv_line(
+                            cr, uid, None, move.purchase_line_id,
+                            context=context
+                        )
+                        if inv_line and inv_line.get('discount'):
+                            product_price = \
+                                inv_line['price_unit'] \
+                                * (1 - inv_line['discount'] / 100)
                         new_price = currency_obj.compute(cr, uid, product_currency,
                                 move_currency_id, product_price, round=False)
                         new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
@@ -2710,6 +2719,15 @@ class stock_move(osv.osv):
                 context['currency_id'] = move_currency_id
                 qty = uom_obj._compute_qty(cr, uid, product_uom, product_qty, product.uom_id.id)
                 if qty > 0:
+                    po_obj = self.pool['purchase.order']
+                    inv_line = po_obj._prepare_inv_line(
+                        cr, uid, None, move.purchase_line_id,
+                        context=context
+                    )
+                    if inv_line and inv_line.get('discount'):
+                        product_price = \
+                            inv_line['price_unit'] \
+                            * (1 - inv_line['discount'] / 100)
                     new_price = currency_obj.compute(cr, uid, product_currency,
                             move_currency_id, product_price, round=False)
                     new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
