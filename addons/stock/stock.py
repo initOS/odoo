@@ -1261,7 +1261,7 @@ class stock_picking(osv.osv):
                     too_many.append(move)
 
                 # Average price computation
-                if (pick.type == 'in') and (move.product_id.cost_method == 'average'):
+                if (pick.type == 'in') and not pick.return_flag and (move.product_id.cost_method == 'average'):
                     product = product_obj.browse(cr, uid, move.product_id.id)
                     move_currency_id = move.company_id.currency_id.id
                     context['currency_id'] = move_currency_id
@@ -1272,6 +1272,15 @@ class stock_picking(osv.osv):
                         product_avail[product.id] = product.qty_available
 
                     if qty > 0:
+                        po_obj = self.pool['purchase.order']
+                        inv_line = po_obj._prepare_inv_line(
+                            cr, uid, None, move.purchase_line_id,
+                            context=context
+                        )
+                        if inv_line and inv_line.get('discount'):
+                            product_price = \
+                                inv_line['price_unit'] \
+                                * (1 - inv_line['discount'] / 100)
                         new_price = currency_obj.compute(cr, uid, product_currency,
                                 move_currency_id, product_price, round=False)
                         new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
@@ -2704,12 +2713,21 @@ class stock_move(osv.osv):
                 too_many.append(move)
 
             # Average price computation
-            if (move.picking_id.type == 'in') and (move.product_id.cost_method == 'average'):
+            if (move.picking_id.type == 'in') and not move.picking_id.return_flag and (move.product_id.cost_method == 'average'):
                 product = product_obj.browse(cr, uid, move.product_id.id)
                 move_currency_id = move.company_id.currency_id.id
                 context['currency_id'] = move_currency_id
                 qty = uom_obj._compute_qty(cr, uid, product_uom, product_qty, product.uom_id.id)
                 if qty > 0:
+                    po_obj = self.pool['purchase.order']
+                    inv_line = po_obj._prepare_inv_line(
+                        cr, uid, None, move.purchase_line_id,
+                        context=context
+                    )
+                    if inv_line and inv_line.get('discount'):
+                        product_price = \
+                            inv_line['price_unit'] \
+                            * (1 - inv_line['discount'] / 100)
                     new_price = currency_obj.compute(cr, uid, product_currency,
                             move_currency_id, product_price, round=False)
                     new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
