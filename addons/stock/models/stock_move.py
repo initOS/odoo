@@ -140,7 +140,9 @@ class StockMove(models.Model):
     returned_move_ids = fields.One2many('stock.move', 'origin_returned_move_id', 'All returned moves', help='Optional: all returned moves created from this move')
     reserved_availability = fields.Float(
         'Quantity Reserved', compute='_compute_reserved_availability',
-        readonly=True, help='Quantity that has already been reserved for this move')
+        readonly=True, help='Quantity that has already been reserved for this move',
+        digits=0,
+        )
     availability = fields.Float(
         'Forecasted Quantity', compute='_compute_product_availability',
         readonly=True, help='Quantity in stock that can still be reserved for this move')
