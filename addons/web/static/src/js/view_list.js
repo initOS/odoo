@@ -1084,6 +1084,11 @@ instance.web.ListView.List = instance.web.Class.extend( /** @lends instance.web.
                 // temp empty value
                 record.set(column.id, false);
             }
+        } else if (column.type === 'float' || column.type === 'integer') {
+            value = record.get(column.id);
+            if (value === false || value === undefined) {
+                record.set(column.id, 0);
+            }
         }
         return column.format(record.toForm().data, {
             model: this.dataset.model,
