@@ -101,9 +101,17 @@ instance.web_graph.GraphView = instance.web.View.extend({
         if (group_by.length) {
             this.widget_config.row_groupby = group_by;
         }
+        col_group_by = this.widget_config.context.col_group_by || col_group_by;
         if (col_group_by.length) {
             this.widget_config.col_groupby = col_group_by;
         }
+
+        var mode = this.widget_config.context.mode || [];
+        if (mode.length) {
+            this.widget_config.mode = mode;
+        }
+
+        measures = this.widget_config.context.measures || measures;
         if (measures.length) {
             this.widget_config.measures = measures;
         }

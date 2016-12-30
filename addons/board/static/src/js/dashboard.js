@@ -376,6 +376,25 @@ instance.board.AddToDashboard = instance.web.search.Input.extend({
         }
         var data = this.view.build_search_data();
         var context = new instance.web.CompoundContext(this.view.dataset.get_context() || []);
+        var measures = [];
+        // get all measures
+        this.view.view_manager.$el.find('.graph_measure_selection').find('.oe_selected').each(function( index ) {
+            measures.push($( this ).attr('data-choice'));
+        });
+
+        if (measures.length) {
+            context.add({
+                measures: measures.toString(),
+            });
+        }
+
+        // get graph mode
+        var mode = '';
+        mode = this.view.view_manager.$el.find('.graph_mode_selection').find('.active').attr('data-mode');
+        context.add({
+            mode: mode,
+        });
+
         var domain = new instance.web.CompoundDomain(this.view.dataset.get_domain() || []);
         _.each(data.contexts, context.add, context);
         _.each(data.domains, domain.add, domain);
