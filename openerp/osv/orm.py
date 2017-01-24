@@ -4543,7 +4543,7 @@ class BaseModel(object):
         upd_todo.sort(lambda x, y: self._columns[x].priority-self._columns[y].priority)
 
         if self._parent_store and not context.get('defer_parent_store_computation'):
-            if self.pool._init:
+            if self.pool._init and not context.get('force_parent_store_computation'):
                 self.pool._init_parent[self._name] = True
             else:
                 parent = vals.get(self._parent_name, False)
