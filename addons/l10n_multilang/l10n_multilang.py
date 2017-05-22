@@ -60,7 +60,9 @@ class wizard_multi_charts_accounts(osv.osv_memory):
             src.update({x.id: x.name})
         for lang in langs:
             #find the value from Translation
-            value = xlat_obj._get_ids(cr, uid, in_obj._name + ',' + in_field, 'model', lang, in_ids)
+            in_ids_src = zip(in_ids, [src[i] for i in in_ids])
+            value = xlat_obj._get_ids(cr, uid, in_obj._name + ',' + in_field, 'model', lang, in_ids_src)
+            value = {k[0]: value[k] for k in value}  # map back onto in_ids
             for j in range(len(in_ids)):
                 in_id = in_ids[j]
                 if value[in_id]:
