@@ -267,18 +267,35 @@ class ir_translation(osv.osv):
                             'and name=%s '
                             'and (res_id, src) IN %s',
                         (lang,tt,name,tuple(ids)))
+                for res_id, src, value in cr.fetchall():
+                    translations[(res_id, src)] = value
+                # fallback: for `res_id` w/o a translation of `src`
+                missing = [i for i in ids if i not in translations]
+                if missing:
+                    cr.execute('select res_id, value '
+                        'from ir_translation '
+                        'where lang=%s '
+                            'and type=%s '
+                            'and name=%s '
+                            'and res_id IN %s',
+                        (lang,tt,name,tuple([m[0] for m in missing])))
+                    for res_id, value in cr.fetchall():
+                        # We want to set `translations[(res_id, src)]` for the
+                        # provided tuples `(res_id, src)` in `ids`, but of
+                        # course only got `res_id` from the SQL query.  Hence
+                        # we need to determine `src` from the `missing` tuples.
+                        for missing_id, src in missing:
+                            if missing_id == res_id:
+                                translations[(res_id, src)] = value
             else:
-                cr.execute('select res_id, src, value '
+                cr.execute('select res_id, value '
                         'from ir_translation '
                         'where lang=%s '
                             'and type=%s '
                             'and name=%s '
                             'and res_id IN %s',
                         (lang,tt,name,tuple(ids)))
-            for res_id, src, value in cr.fetchall():
-                if have_src:
-                    translations[(res_id, src)] = value
-                else:
+                for res_id, value in cr.fetchall():
                     translations[res_id] = value
         return translations
 
