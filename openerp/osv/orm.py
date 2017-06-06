@@ -3770,7 +3770,9 @@ class BaseModel(object):
                 if self._columns[f].translate:
                     ids = [x['id'] for x in res]
                     #TODO: optimize out of this loop
-                    res_trans = self.pool.get('ir.translation')._get_ids(cr, user, self._name+','+f, 'model', context['lang'], ids)
+                    ids_src = zip(ids, [r[f] for r in res])
+                    res_trans = self.pool.get('ir.translation')._get_ids(cr, user, self._name+','+f, 'model', context['lang'], ids_src)
+                    res_trans = {k[0]: res_trans[k] for k in res_trans}  # map back onto ids
                     for r in res:
                         r[f] = res_trans.get(r['id'], False) or r[f]
 

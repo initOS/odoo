@@ -258,20 +258,56 @@ class ir_translation(osv.osv):
     def _get_ids(self, cr, uid, name, tt, lang, ids):
         translations = dict.fromkeys(ids, False)
         if ids:
-            cr.execute('select res_id,value '
-                    'from ir_translation '
-                    'where lang=%s '
-                        'and type=%s '
-                        'and name=%s '
-                        'and res_id IN %s',
-                    (lang,tt,name,tuple(ids)))
-            for res_id, value in cr.fetchall():
-                translations[res_id] = value
+            have_src = ids and isinstance(ids[0], tuple)
+            if have_src:
+                cr.execute('select res_id, src, value '
+                        'from ir_translation '
+                        'where lang=%s '
+                            'and type=%s '
+                            'and name=%s '
+                            'and (res_id, src) IN %s',
+                        (lang,tt,name,tuple(ids)))
+                for res_id, src, value in cr.fetchall():
+                    translations[(res_id, src)] = value
+                # fallback: for `res_id` w/o a translation of `src`
+                missing = [i for i in ids if i not in translations]
+                if missing:
+                    cr.execute('select res_id, value '
+                        'from ir_translation '
+                        'where lang=%s '
+                            'and type=%s '
+                            'and name=%s '
+                            'and res_id IN %s',
+                        (lang,tt,name,tuple([m[0] for m in missing])))
+                    for res_id, value in cr.fetchall():
+                        # We want to set `translations[(res_id, src)]` for the
+                        # provided tuples `(res_id, src)` in `ids`, but of
+                        # course only got `res_id` from the SQL query.  Hence
+                        # we need to determine `src` from the `missing` tuples.
+                        for missing_id, src in missing:
+                            if missing_id == res_id:
+                                translations[(res_id, src)] = value
+            else:
+                cr.execute('select res_id, value '
+                        'from ir_translation '
+                        'where lang=%s '
+                            'and type=%s '
+                            'and name=%s '
+                            'and res_id IN %s',
+                        (lang,tt,name,tuple(ids)))
+                for res_id, value in cr.fetchall():
+                    translations[res_id] = value
         return translations
 
     def _set_ids(self, cr, uid, name, tt, lang, ids, value, src=None):
         # clear the caches
-        tr = self._get_ids(cr, uid, name, tt, lang, ids)
+        if src and isinstance(src, list):
+            ids_src = zip(ids, src)
+        elif src:
+            ids_src = zip(ids, [src] * len(ids))
+        else:
+            ids_src = ids
+        tr = self._get_ids(cr, uid, name, tt, lang, ids_src)
         for res_id in tr:
             if tr[res_id]:
                 self._get_source.clear_cache(self, uid, name, tt, lang, tr[res_id])
