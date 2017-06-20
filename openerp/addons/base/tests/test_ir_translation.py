@@ -115,5 +115,7 @@ class test_ir_translation(openerp.tests.common.TransactionCase):
         self.assertEqual(ids, {key: name2_de})
 
         key = (cat1_id, 'foo')
+        # _get_ids will use the fallback case
         ids = translation_obj._get_ids(cr, uid, tr_name, 'model', DE, [key])
-        self.assertEqual(ids, {key: False})
+        # ... which will ("randomly") result in either `name1_de` or `name1_de`
+        self.assertIn(ids, [{key: name1_de}, {key: name2_de}])
