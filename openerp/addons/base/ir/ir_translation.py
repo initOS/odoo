@@ -270,7 +270,7 @@ class ir_translation(osv.osv):
                 for res_id, src, value in cr.fetchall():
                     translations[(res_id, src)] = value
                 # fallback: for `res_id` w/o a translation of `src`
-                missing = [i for i in ids if i not in translations]
+                missing = [i for i in ids if translations[i] is False]
                 if missing:
                     cr.execute('select res_id, value '
                         'from ir_translation '
