@@ -2996,7 +2996,7 @@ class BaseModel(object):
     def _drop_constraint(self, cr, source_table, constraint_name):
         cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (source_table,constraint_name))
 
-    def _m2o_fix_foreign_key(self, cr, source_table, source_field, dest_model, ondelete):
+    def _m2o_fix_foreign_key(self, cr, source_table, source_field, dest_model, ondelete, checked=True):
         # Find FK constraint(s) currently established for the m2o field,
         # and see whether they are stale or not
         cr.execute("""SELECT confdeltype as ondelete_rule, conname as constraint_name,
@@ -3037,7 +3037,10 @@ class BaseModel(object):
                     self._drop_constraint(cr, source_table, cons['constraint_name'])
 
         # (re-)create the FK
-        self._m2o_add_foreign_key_checked(source_field, dest_model, ondelete)
+        if checked:
+            self._m2o_add_foreign_key_checked(source_field, dest_model, ondelete)
+        else:
+            self._m2o_add_foreign_key_unchecked(source_table, source_field, dest_model, ondelete)
 
 
 
@@ -3316,8 +3319,27 @@ class BaseModel(object):
     def _auto_end(self, cr, context=None):
         """ Create the foreign keys recorded by _auto_init. """
         for t, k, r, d in self._foreign_keys:
-            cr.execute('ALTER TABLE "%s" ADD FOREIGN KEY ("%s") REFERENCES "%s" ON DELETE %s' % (t, k, r, d))
-            self._save_constraint(cr, "%s_%s_fkey" % (t, k), 'f')
+            cr.execute("""SELECT confdeltype as ondelete_rule, conname as constraint_name,
+                                 cl2.relname as foreign_table
+                          FROM pg_constraint as con, pg_class as cl1, pg_class as cl2,
+                               pg_attribute as att1, pg_attribute as att2
+                          WHERE con.conrelid = cl1.oid
+                            AND cl1.relname = %s
+                            AND cl2.relname = %s
+                            AND con.confrelid = cl2.oid
+                            AND array_lower(con.conkey, 1) = 1
+                            AND con.conkey[1] = att1.attnum
+                            AND att1.attrelid = cl1.oid
+                            AND att1.attname = %s
+                            AND array_lower(con.confkey, 1) = 1
+                            AND con.confkey[1] = att2.attnum
+                            AND att2.attrelid = cl2.oid
+                            AND att2.attname = %s
+                            AND con.contype = 'f'""", (t, r, k, 'id'))
+            constraints = cr.dictfetchall()
+            if not constraints:
+                cr.execute('ALTER TABLE "%s" ADD FOREIGN KEY ("%s") REFERENCES "%s" ON DELETE %s' % (t, k, r, d))
+                self._save_constraint(cr, "%s_%s_fkey" % (t, k), 'f')
         cr.commit()
         del self._foreign_keys
 
@@ -3430,6 +3452,18 @@ class BaseModel(object):
             cr.execute("COMMENT ON TABLE \"%s\" IS 'RELATION BETWEEN %s AND %s'" % (m2m_tbl, self._table, ref))
             cr.commit()
             _schema.debug("Create table '%s': m2m relation between '%s' and '%s'", m2m_tbl, self._table, ref)
+        else:
+            if not self.pool.get(f._obj):
+                raise except_orm('Programming Error', 'Many2Many destination model does not exist: `%s`' % (f._obj,))
+            # create foreign key references with ondelete=cascade, unless the targets are SQL views
+            dest_model = self.pool.get(f._obj)
+            ref = dest_model._table
+            cr.execute("SELECT relkind FROM pg_class WHERE relkind IN ('v') AND relname=%s", (ref,))
+            if not cr.fetchall():
+                self._m2o_fix_foreign_key(cr, m2m_tbl, col2, dest_model, 'cascade', checked=False)
+            cr.execute("SELECT relkind FROM pg_class WHERE relkind IN ('v') AND relname=%s", (self._table,))
+            if not cr.fetchall():
+                self._m2o_fix_foreign_key(cr, m2m_tbl, col1, self, 'cascade', checked=False)
 
 
     def _add_sql_constraints(self, cr):
