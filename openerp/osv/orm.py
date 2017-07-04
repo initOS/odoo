@@ -2996,15 +2996,15 @@ class BaseModel(object):
     def _drop_constraint(self, cr, source_table, constraint_name):
         cr.execute("ALTER TABLE %s DROP CONSTRAINT %s" % (source_table,constraint_name))
 
-    def _m2o_fix_foreign_key(self, cr, source_table, source_field, dest_model, ondelete, checked=True):
-        # Find FK constraint(s) currently established for the m2o field,
-        # and see whether they are stale or not
-        cr.execute("""SELECT confdeltype as ondelete_rule, conname as constraint_name,
+    def _get_foreign_key_constraints(self, cr, source_table, source_field, foreign_table=None):
+        # Find FK constraint(s) currently established for the m2o field
+        query = """SELECT confdeltype as ondelete_rule, conname as constraint_name,
                              cl2.relname as foreign_table
                       FROM pg_constraint as con, pg_class as cl1, pg_class as cl2,
                            pg_attribute as att1, pg_attribute as att2
                       WHERE con.conrelid = cl1.oid
                         AND cl1.relname = %s
+                """ + ("AND cl2.relname = %s" if foreign_table else "") + """
                         AND con.confrelid = cl2.oid
                         AND array_lower(con.conkey, 1) = 1
                         AND con.conkey[1] = att1.attnum
@@ -3014,8 +3014,17 @@ class BaseModel(object):
                         AND con.confkey[1] = att2.attnum
                         AND att2.attrelid = cl2.oid
                         AND att2.attname = %s
-                        AND con.contype = 'f'""", (source_table, source_field, 'id'))
+                        AND con.contype = 'f'
+                """
+        params = (source_table, foreign_table, source_field, 'id') if foreign_table else (source_table, source_field, 'id')
+        cr.execute(query, params)
         constraints = cr.dictfetchall()
+        return constraints
+
+    def _m2o_fix_foreign_key(self, cr, source_table, source_field, dest_model, ondelete, checked=True):
+        # Find FK constraint(s) currently established for the m2o field,
+        # and see whether they are stale or not
+        constraints = self._get_foreign_key_constraints(cr, source_table, source_field)
         if constraints:
             if len(constraints) == 1:
                 # Is it the right constraint?
@@ -3319,24 +3328,7 @@ class BaseModel(object):
     def _auto_end(self, cr, context=None):
         """ Create the foreign keys recorded by _auto_init. """
         for t, k, r, d in self._foreign_keys:
-            cr.execute("""SELECT confdeltype as ondelete_rule, conname as constraint_name,
-                                 cl2.relname as foreign_table
-                          FROM pg_constraint as con, pg_class as cl1, pg_class as cl2,
-                               pg_attribute as att1, pg_attribute as att2
-                          WHERE con.conrelid = cl1.oid
-                            AND cl1.relname = %s
-                            AND cl2.relname = %s
-                            AND con.confrelid = cl2.oid
-                            AND array_lower(con.conkey, 1) = 1
-                            AND con.conkey[1] = att1.attnum
-                            AND att1.attrelid = cl1.oid
-                            AND att1.attname = %s
-                            AND array_lower(con.confkey, 1) = 1
-                            AND con.confkey[1] = att2.attnum
-                            AND att2.attrelid = cl2.oid
-                            AND att2.attname = %s
-                            AND con.contype = 'f'""", (t, r, k, 'id'))
-            constraints = cr.dictfetchall()
+            constraints = self._get_foreign_key_constraints(cr, t, k, foreign_table=r)
             if not constraints:
                 cr.execute('ALTER TABLE "%s" ADD FOREIGN KEY ("%s") REFERENCES "%s" ON DELETE %s' % (t, k, r, d))
                 self._save_constraint(cr, "%s_%s_fkey" % (t, k), 'f')
