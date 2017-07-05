@@ -3453,9 +3453,19 @@ class BaseModel(object):
             cr.execute("SELECT relkind FROM pg_class WHERE relkind IN ('v') AND relname=%s", (ref,))
             if not cr.fetchall():
                 self._m2o_fix_foreign_key(cr, m2m_tbl, col2, dest_model, 'cascade', checked=False)
-            cr.execute("SELECT relkind FROM pg_class WHERE relkind IN ('v') AND relname=%s", (self._table,))
-            if not cr.fetchall():
-                self._m2o_fix_foreign_key(cr, m2m_tbl, col1, self, 'cascade', checked=False)
+            # The foreign key constraint for "this side" (i.e., this model, not
+            # the co-model) has to reference the table of the model that
+            # actually defines the field `f`.  In case of model inheritance,
+            # this is not necessarily the current one (`self._table`).
+            # Since it's unclear to us how to determine this model, we skip the
+            # update for this foreign key constraint.
+            # This should not be a problem, since the correct foreign key
+            # constraint will be created by the co-model's corresponding field.
+            # Note that the co-model's co-model should be just the required
+            # model, and it is explicitly specified in that field's definition.
+            # cr.execute("SELECT relkind FROM pg_class WHERE relkind IN ('v') AND relname=%s", (self._table,))
+            # if not cr.fetchall():
+            #     self._m2o_fix_foreign_key(cr, m2m_tbl, col1, self, 'cascade', checked=False)
 
 
     def _add_sql_constraints(self, cr):
