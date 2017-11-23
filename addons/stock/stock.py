@@ -1261,7 +1261,7 @@ class stock_picking(osv.osv):
                     too_many.append(move)
 
                 # Average price computation
-                if (pick.type == 'in') and (move.product_id.cost_method == 'average'):
+                if move_obj._needs_average_price_update(move):
                     product = product_obj.browse(cr, uid, move.product_id.id)
                     move_currency_id = move.company_id.currency_id.id
                     context['currency_id'] = move_currency_id
@@ -2666,6 +2666,13 @@ class stock_move(osv.osv):
 
         return res
 
+    def _needs_average_price_update(self, move):
+        """
+        Checks whether the average price update has to be done.
+        """
+        pick = move.picking_id
+        return (pick.type == 'in') and (move.product_id.cost_method == 'average')
+
     # FIXME: needs refactoring, this code is partially duplicated in stock_picking.do_partial()!
     def do_partial(self, cr, uid, ids, partial_datas, context=None):
         """ Makes partial pickings and moves done.
@@ -2705,7 +2712,7 @@ class stock_move(osv.osv):
                 too_many.append(move)
 
             # Average price computation
-            if (move.picking_id.type == 'in') and (move.product_id.cost_method == 'average'):
+            if self._needs_average_price_update(move):
                 product = product_obj.browse(cr, uid, move.product_id.id)
                 move_currency_id = move.company_id.currency_id.id
                 context['currency_id'] = move_currency_id
