@@ -1272,20 +1272,21 @@ class stock_picking(osv.osv):
                         product_avail[product.id] = product.qty_available
 
                     if qty > 0:
-                        new_price = currency_obj.compute(cr, uid, product_currency,
-                                move_currency_id, product_price, round=False)
-                        new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
-                                product.uom_id.id)
-                        if product_avail[product.id] <= 0:
-                            product_avail[product.id] = 0
-                            new_std_price = new_price
-                        else:
-                            # Get the standard price
-                            amount_unit = product.price_get('standard_price', context=context)[product.id]
-                            new_std_price = ((amount_unit * product_avail[product.id])\
-                                + (new_price * qty))/(product_avail[product.id] + qty)
-                        # Write the field according to price type field
-                        product_obj.write(cr, uid, [product.id], {'standard_price': new_std_price})
+                        if product_price != 0.00:
+                            new_price = currency_obj.compute(cr, uid, product_currency,
+                                    move_currency_id, product_price, round=False)
+                            new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
+                                    product.uom_id.id)
+                            if product_avail[product.id] <= 0:
+                                product_avail[product.id] = 0
+                                new_std_price = new_price
+                            else:
+                                # Get the standard price
+                                amount_unit = product.price_get('standard_price', context=context)[product.id]
+                                new_std_price = ((amount_unit * product_avail[product.id])\
+                                    + (new_price * qty))/(product_avail[product.id] + qty)
+                            # Write the field according to price type field
+                            product_obj.write(cr, uid, [product.id], {'standard_price': new_std_price})
 
                         # Record the values that were chosen in the wizard, so they can be
                         # used for inventory valuation if real-time valuation is enabled.
@@ -2710,19 +2711,20 @@ class stock_move(osv.osv):
                 context['currency_id'] = move_currency_id
                 qty = uom_obj._compute_qty(cr, uid, product_uom, product_qty, product.uom_id.id)
                 if qty > 0:
-                    new_price = currency_obj.compute(cr, uid, product_currency,
-                            move_currency_id, product_price, round=False)
-                    new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
-                            product.uom_id.id)
-                    if product.qty_available <= 0:
-                        new_std_price = new_price
-                    else:
-                        # Get the standard price
-                        amount_unit = product.price_get('standard_price', context=context)[product.id]
-                        new_std_price = ((amount_unit * product.qty_available)\
-                            + (new_price * qty))/(product.qty_available + qty)
+                    if product_price != 0.00:
+                        new_price = currency_obj.compute(cr, uid, product_currency,
+                                move_currency_id, product_price, round=False)
+                        new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
+                                product.uom_id.id)
+                        if product.qty_available <= 0:
+                            new_std_price = new_price
+                        else:
+                            # Get the standard price
+                            amount_unit = product.price_get('standard_price', context=context)[product.id]
+                            new_std_price = ((amount_unit * product.qty_available)\
+                                + (new_price * qty))/(product.qty_available + qty)
 
-                    product_obj.write(cr, uid, [product.id],{'standard_price': new_std_price})
+                        product_obj.write(cr, uid, [product.id],{'standard_price': new_std_price})
 
                     # Record the values that were chosen in the wizard, so they can be
                     # used for inventory valuation if real-time valuation is enabled.
