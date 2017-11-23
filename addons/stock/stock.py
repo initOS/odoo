@@ -1261,7 +1261,7 @@ class stock_picking(osv.osv):
                     too_many.append(move)
 
                 # Average price computation
-                if (pick.type == 'in') and not pick.return_flag and (move.product_id.cost_method == 'average'):
+                if move_obj._needs_average_price_update(move):
                     product = product_obj.browse(cr, uid, move.product_id.id)
                     move_currency_id = move.company_id.currency_id.id
                     context['currency_id'] = move_currency_id
@@ -1272,29 +1272,21 @@ class stock_picking(osv.osv):
                         product_avail[product.id] = product.qty_available
 
                     if qty > 0:
-                        po_obj = self.pool['purchase.order']
-                        inv_line = po_obj._prepare_inv_line(
-                            cr, uid, None, move.purchase_line_id,
-                            context=context
-                        )
-                        if inv_line and inv_line.get('discount'):
-                            product_price = \
-                                inv_line['price_unit'] \
-                                * (1 - inv_line['discount'] / 100)
-                        new_price = currency_obj.compute(cr, uid, product_currency,
-                                move_currency_id, product_price, round=False)
-                        new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
-                                product.uom_id.id)
-                        if product_avail[product.id] <= 0:
-                            product_avail[product.id] = 0
-                            new_std_price = new_price
-                        else:
-                            # Get the standard price
-                            amount_unit = product.price_get('standard_price', context=context)[product.id]
-                            new_std_price = ((amount_unit * product_avail[product.id])\
-                                + (new_price * qty))/(product_avail[product.id] + qty)
-                        # Write the field according to price type field
-                        product_obj.write(cr, uid, [product.id], {'standard_price': new_std_price})
+                        if product_price != 0.00:
+                            new_price = currency_obj.compute(cr, uid, product_currency,
+                                    move_currency_id, product_price, round=False)
+                            new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
+                                    product.uom_id.id)
+                            if product_avail[product.id] <= 0:
+                                product_avail[product.id] = 0
+                                new_std_price = new_price
+                            else:
+                                # Get the standard price
+                                amount_unit = product.price_get('standard_price', context=context)[product.id]
+                                new_std_price = ((amount_unit * product_avail[product.id])\
+                                    + (new_price * qty))/(product_avail[product.id] + qty)
+                            # Write the field according to price type field
+                            product_obj.write(cr, uid, [product.id], {'standard_price': new_std_price})
 
                         # Record the values that were chosen in the wizard, so they can be
                         # used for inventory valuation if real-time valuation is enabled.
@@ -2674,6 +2666,13 @@ class stock_move(osv.osv):
 
         return res
 
+    def _needs_average_price_update(self, move):
+        """
+        Checks whether the average price update has to be done.
+        """
+        pick = move.picking_id
+        return (pick.type == 'in') and (move.product_id.cost_method == 'average')
+
     # FIXME: needs refactoring, this code is partially duplicated in stock_picking.do_partial()!
     def do_partial(self, cr, uid, ids, partial_datas, context=None):
         """ Makes partial pickings and moves done.
@@ -2713,34 +2712,26 @@ class stock_move(osv.osv):
                 too_many.append(move)
 
             # Average price computation
-            if (move.picking_id.type == 'in') and not move.picking_id.return_flag and (move.product_id.cost_method == 'average'):
+            if self._needs_average_price_update(move):
                 product = product_obj.browse(cr, uid, move.product_id.id)
                 move_currency_id = move.company_id.currency_id.id
                 context['currency_id'] = move_currency_id
                 qty = uom_obj._compute_qty(cr, uid, product_uom, product_qty, product.uom_id.id)
                 if qty > 0:
-                    po_obj = self.pool['purchase.order']
-                    inv_line = po_obj._prepare_inv_line(
-                        cr, uid, None, move.purchase_line_id,
-                        context=context
-                    )
-                    if inv_line and inv_line.get('discount'):
-                        product_price = \
-                            inv_line['price_unit'] \
-                            * (1 - inv_line['discount'] / 100)
-                    new_price = currency_obj.compute(cr, uid, product_currency,
-                            move_currency_id, product_price, round=False)
-                    new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
-                            product.uom_id.id)
-                    if product.qty_available <= 0:
-                        new_std_price = new_price
-                    else:
-                        # Get the standard price
-                        amount_unit = product.price_get('standard_price', context=context)[product.id]
-                        new_std_price = ((amount_unit * product.qty_available)\
-                            + (new_price * qty))/(product.qty_available + qty)
+                    if product_price != 0.00:
+                        new_price = currency_obj.compute(cr, uid, product_currency,
+                                move_currency_id, product_price, round=False)
+                        new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
+                                product.uom_id.id)
+                        if product.qty_available <= 0:
+                            new_std_price = new_price
+                        else:
+                            # Get the standard price
+                            amount_unit = product.price_get('standard_price', context=context)[product.id]
+                            new_std_price = ((amount_unit * product.qty_available)\
+                                + (new_price * qty))/(product.qty_available + qty)
 
-                    product_obj.write(cr, uid, [product.id],{'standard_price': new_std_price})
+                        product_obj.write(cr, uid, [product.id],{'standard_price': new_std_price})
 
                     # Record the values that were chosen in the wizard, so they can be
                     # used for inventory valuation if real-time valuation is enabled.
