@@ -91,6 +91,17 @@ class change_standard_price(osv.osv_memory):
         else :
             return {'value' : {'enable_stock_in_out_acc':False}}
 
+    def _prepare_prices(self, record):
+        """
+        Prepare dict with data for product's `do_change_standard_price()`.
+        """
+        return {
+            'new_price': record.new_price,
+            'stock_output_account': record.stock_account_output.id,
+            'stock_input_account': record.stock_account_input.id,
+            'stock_journal': record.stock_journal.id,
+        }
+
     def change_price(self, cr, uid, ids, context=None):
         """ Changes the Standard Price of Product.
             And creates an account move accordingly.
@@ -107,12 +118,7 @@ class change_standard_price(osv.osv_memory):
         assert rec_id, _('Active ID is not set in Context.')
         prod_obj = self.pool.get('product.product')
         res = self.browse(cr, uid, ids, context=context)
-        datas = {
-            'new_price' : res[0].new_price,
-            'stock_output_account' : res[0].stock_account_output.id,
-            'stock_input_account' : res[0].stock_account_input.id,
-            'stock_journal' : res[0].stock_journal.id
-        }
+        datas = self._prepare_prices(res[0])
         prod_obj.do_change_standard_price(cr, uid, [rec_id], datas, context)
         return {'type': 'ir.actions.act_window_close'}
 
