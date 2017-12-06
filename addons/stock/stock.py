@@ -1279,14 +1279,10 @@ class stock_picking(osv.osv):
                                     product.uom_id.id)
                             if product_avail[product.id] <= 0:
                                 product_avail[product.id] = 0
-                                new_std_price = new_price
-                            else:
-                                # Get the standard price
-                                amount_unit = product.price_get('standard_price', context=context)[product.id]
-                                new_std_price = ((amount_unit * product_avail[product.id])\
-                                    + (new_price * qty))/(product_avail[product.id] + qty)
+                            updated_prices = move_obj._compute_updated_prices(
+                                move, product_avail[product.id], qty, new_price, context=None)
                             # Write the field according to price type field
-                            product_obj.write(cr, uid, [product.id], {'standard_price': new_std_price})
+                            product_obj.write(cr, uid, [product.id], updated_prices)
 
                         # Record the values that were chosen in the wizard, so they can be
                         # used for inventory valuation if real-time valuation is enabled.
@@ -2673,6 +2669,24 @@ class stock_move(osv.osv):
         pick = move.picking_id
         return (pick.type == 'in') and (move.product_id.cost_method == 'average')
 
+    def _compute_updated_prices(self, move, available_qty, added_qty, added_price_unit, context=None):
+        """
+        Returns a dict with the updated (moving average) standard_price.
+        """
+        if available_qty <= 0:
+            new_std_price = added_price_unit
+        else:
+            product = move.product_id
+            # Get the standard price
+            available_price_unit = product.price_get('standard_price', context=context)[product.id]
+            new_std_price = (
+                (available_qty * available_price_unit + added_qty * added_price_unit)
+                / (available_qty + added_qty)
+            )
+        return {
+            'standard_price': new_std_price,
+        }
+
     # FIXME: needs refactoring, this code is partially duplicated in stock_picking.do_partial()!
     def do_partial(self, cr, uid, ids, partial_datas, context=None):
         """ Makes partial pickings and moves done.
@@ -2723,15 +2737,10 @@ class stock_move(osv.osv):
                                 move_currency_id, product_price, round=False)
                         new_price = uom_obj._compute_price(cr, uid, product_uom, new_price,
                                 product.uom_id.id)
-                        if product.qty_available <= 0:
-                            new_std_price = new_price
-                        else:
-                            # Get the standard price
-                            amount_unit = product.price_get('standard_price', context=context)[product.id]
-                            new_std_price = ((amount_unit * product.qty_available)\
-                                + (new_price * qty))/(product.qty_available + qty)
-
-                        product_obj.write(cr, uid, [product.id],{'standard_price': new_std_price})
+                        updated_prices = self._compute_updated_prices(
+                                move, product.qty_available, qty, new_price, context=None)
+                        # write the updated price(s)
+                        product_obj.write(cr, uid, [product.id], updated_prices)
 
                     # Record the values that were chosen in the wizard, so they can be
                     # used for inventory valuation if real-time valuation is enabled.
