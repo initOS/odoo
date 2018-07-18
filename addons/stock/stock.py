@@ -3961,7 +3961,7 @@ class stock_package(osv.osv):
         'ul_id': fields.many2one('product.ul', 'Logistic Unit'),
         'location_id': fields.function(_get_package_info, type='many2one', relation='stock.location', string='Location', multi="package",
                                     store={
-                                       'stock.quant': (_get_packages, ['location_id'], 10),
+                                       'stock.quant': (_get_packages, ['location_id', 'package_id'], 10),
                                        'stock.quant.package': (_get_packages_to_relocate, ['quant_ids', 'children_ids', 'parent_id'], 10),
                                     }, readonly=True, select=True),
         'quant_ids': fields.one2many('stock.quant', 'package_id', 'Bulk Content', readonly=True),
@@ -3969,12 +3969,12 @@ class stock_package(osv.osv):
         'children_ids': fields.one2many('stock.quant.package', 'parent_id', 'Contained Packages', readonly=True),
         'company_id': fields.function(_get_package_info, type="many2one", relation='res.company', string='Company', multi="package", 
                                     store={
-                                       'stock.quant': (_get_packages, ['company_id'], 10),
+                                       'stock.quant': (_get_packages, ['company_id', 'package_id'], 10),
                                        'stock.quant.package': (_get_packages_to_relocate, ['quant_ids', 'children_ids', 'parent_id'], 10),
                                     }, readonly=True, select=True),
         'owner_id': fields.function(_get_package_info, type='many2one', relation='res.partner', string='Owner', multi="package",
                                 store={
-                                       'stock.quant': (_get_packages, ['owner_id'], 10),
+                                       'stock.quant': (_get_packages, ['owner_id', 'package_id'], 10),
                                        'stock.quant.package': (_get_packages_to_relocate, ['quant_ids', 'children_ids', 'parent_id'], 10),
                                     }, readonly=True, select=True),
     }
