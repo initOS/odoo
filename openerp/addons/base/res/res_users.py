@@ -466,8 +466,11 @@ class res_users(osv.osv):
                     self.check_credentials(cr, user_id, password)
                     self._update_last_login(cr, user_id)
         except openerp.exceptions.AccessDenied:
-            _logger.info("Login failed for db:%s login:%s", db, login)
             user_id = False
+
+        status = "successful" if user_id else "failed"
+        ip = request.httprequest.environ['REMOTE_ADDR'] if request else 'n/a'
+        _logger.info("Login %s for db:%s login:%s from %s", status, db, login, ip)
         return user_id
 
     def authenticate(self, db, login, password, user_agent_env):
