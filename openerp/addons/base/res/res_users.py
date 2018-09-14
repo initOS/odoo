@@ -431,7 +431,7 @@ class res_users(osv.osv):
         if not res:
             raise openerp.exceptions.AccessDenied()
 
-    def login(self, db, login, password):
+    def login(self, db, login, password, ip=None):
         if not password:
             return False
         user_id = False
@@ -465,10 +465,12 @@ class res_users(osv.osv):
                 except Exception:
                     _logger.debug("Failed to update last_login for db:%s login:%s", db, login, exc_info=True)
         except openerp.exceptions.AccessDenied:
-            _logger.info("Login failed for db:%s login:%s", db, login)
             user_id = False
         finally:
             cr.close()
+
+        status = "successful" if user_id else "failed"
+        _logger.info("Login %s for db:%s login:%s from %s", status, db, login, ip or 'n/a')
 
         return user_id
 
@@ -483,7 +485,7 @@ class res_users(osv.osv):
            :param dict user_agent_env: environment dictionary describing any
                relevant environment attributes
         """
-        uid = self.login(db, login, password)
+        uid = self.login(db, login, password, user_agent_env.get('REMOTE_ADDR', None))
         if uid == openerp.SUPERUSER_ID:
             # Successfully logged in as admin!
             # Attempt to guess the web base url...
