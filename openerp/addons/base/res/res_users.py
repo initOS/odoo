@@ -469,10 +469,13 @@ class res_users(osv.osv):
                 except Exception:
                     _logger.debug("Failed to update last_login for db:%s login:%s", db, login, exc_info=True)
         except openerp.exceptions.AccessDenied:
-            _logger.info("Login failed for db:%s login:%s", db, login)
             user_id = False
         finally:
             cr.close()
+
+        status = "successful" if user_id else "failed"
+        ip = request.httprequest.environ['REMOTE_ADDR'] if request else 'n/a'
+        _logger.info("Login %s for db:%s login:%s from %s", status, db, login, ip)
 
         return user_id
 
