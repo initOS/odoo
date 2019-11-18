@@ -1,15 +1,18 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-import serial
+
 import socket
+from time import sleep
+
+import serial
 import usb.core
 import usb.util
 
-from .escpos import *
 from .constants import *
+from .escpos import *
 from .exceptions import *
-from time import sleep
+
 
 class Usb(Escpos):
     """ Define USB printer """
@@ -83,8 +86,8 @@ class Usb(Escpos):
 
     def _raw(self, msg):
         """ Print any command sent in raw format """
-        if len(msg) != self.device.write(self.out_ep, msg, self.interface, timeout=5000):
-            self.device.write(self.out_ep, self.errorText, self.interface)
+        if len(msg) != self.device.write(self.out_ep, msg, timeout=5000):
+            self.device.write(self.out_ep, self.errorText)
             raise TicketNotPrinted()
     
     def __extract_status(self):
@@ -107,13 +110,13 @@ class Usb(Escpos):
             'paper'  : {},
         }
 
-        self.device.write(self.out_ep, DLE_EOT_PRINTER, self.interface)
+        self.device.write(self.out_ep, DLE_EOT_PRINTER)
         printer = self.__extract_status()    
-        self.device.write(self.out_ep, DLE_EOT_OFFLINE, self.interface)
+        self.device.write(self.out_ep, DLE_EOT_OFFLINE)
         offline = self.__extract_status()
-        self.device.write(self.out_ep, DLE_EOT_ERROR, self.interface)
+        self.device.write(self.out_ep, DLE_EOT_ERROR)
         error = self.__extract_status()
-        self.device.write(self.out_ep, DLE_EOT_PAPER, self.interface)
+        self.device.write(self.out_ep, DLE_EOT_PAPER)
         paper = self.__extract_status()
             
         status['printer']['status_code']     = printer
@@ -217,4 +220,3 @@ class Network(Escpos):
     def __del__(self):
         """ Close TCP connection """
         self.device.close()
-
