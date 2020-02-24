@@ -61,6 +61,8 @@ class AccountInvoiceRefund(models.TransientModel):
             date = False
             description = False
             for inv in inv_obj.browse(context.get('active_ids')):
+                date = form.date or False
+                description = form.description or inv.name
                 refund = form._get_refund(inv, mode)
                 created_inv.append(refund.id)
                 if mode in ('cancel', 'modify'):
