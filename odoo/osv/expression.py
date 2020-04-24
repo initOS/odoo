@@ -526,7 +526,7 @@ class ExtendedLeaf(object):
             :attr list _models: list of chained models, updated when
                 adding joins
             :attr list join_context: list of join contexts. This is a list of
-                tuples like ``(lhs, table, lhs_col, col, link)``
+                tuples like ``(lhs, table, lhs_col, col, link, relation)``
 
                 where
 
@@ -543,6 +543,8 @@ class ExtendedLeaf(object):
                     that is not necessarily (but generally) a real column used
                     in the condition (i.e. in many2one); this link is used to
                     compute aliases
+                relation
+                    name of the relation table for many2many fields otherwise None
         """
         assert isinstance(model, BaseModel), 'Invalid leaf creation without table'
         self.join_context = join_context or []
@@ -566,13 +568,13 @@ class ExtendedLeaf(object):
         alias, alias_statement = generate_table_alias(self._models[0]._table, links)
         return alias
 
-    def add_join_context(self, model, lhs_col, table_col, link):
+    def add_join_context(self, model, lhs_col, table_col, link, relation=None):
         """ See above comments for more details. A join context is a tuple like:
                 ``(lhs, model, lhs_col, col, link)``
 
             After adding the join, the model of the current leaf is updated.
         """
-        self.join_context.append((self.model, model, lhs_col, table_col, link))
+        self.join_context.append((self.model, model, lhs_col, table_col, link, relation))
         self._models.append(model)
         self.model = model
 
@@ -581,17 +583,33 @@ class ExtendedLeaf(object):
         alias = self._models[0]._table
         for context in self.join_context:
             previous_alias = alias
-            alias += '__' + context[4]
-            conditions.append('"%s"."%s"="%s"."%s"' % (previous_alias, context[2], alias, context[3]))
+            if context[5]:
+                alias += "__" + context[4]
+                conditions.append('"%s"."id"="%s__m2m"."%s"' % (previous_alias, previous_alias, context[2]))
+                conditions.append('"%s__m2m"."%s"="%s"."id"' % (previous_alias, context[3], alias))
+            else:
+                alias += '__' + context[4]
+                conditions.append('"%s"."%s"="%s"."%s"' % (previous_alias, context[2], alias, context[3]))
+
         return conditions
 
     def get_tables(self):
         tables = set()
         links = []
         for context in self.join_context:
-            links.append((context[1]._table, context[4]))
-            alias, alias_statement = generate_table_alias(self._models[0]._table, links)
-            tables.add(alias_statement)
+            if context[5]:
+                links.append((context[5], "m2m"))
+                alias, alias_statement = generate_table_alias(self._models[0]._table, links)
+                tables.add(alias_statement)
+
+                links[-1] = (context[1]._table, context[4])
+                alias, alias_statement = generate_table_alias(self._models[0]._table, links)
+                tables.add(alias_statement)
+            else:
+                links.append((context[1]._table, context[4]))
+                alias, alias_statement = generate_table_alias(self._models[0]._table, links)
+                tables.add(alias_statement)
+
         return tables
 
     def _get_context_debug(self):
@@ -898,6 +916,10 @@ class expression(object):
                     for elem in reversed(domain):
                         push(create_substitution_leaf(leaf, elem, comodel))
                     push(create_substitution_leaf(leaf, AND_OPERATOR, comodel))
+
+            elif len(path) > 1 and field.store and field.type == 'many2many' and field.auto_join:
+                leaf.add_join_context(comodel, field.column1, field.column2, path[0], field.relation)
+                push(create_substitution_leaf(leaf, (path[1], operator, right), comodel))
 
             elif len(path) > 1 and field.store and field.auto_join:
                 raise NotImplementedError('auto_join attribute not supported on field %s' % field)
