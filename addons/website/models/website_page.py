@@ -58,11 +58,20 @@ class Page(models.Model):
 
         return most_specific_page == page_to_test
 
-    @api.model
-    def get_page_info(self, id):
-        return self.browse(id).read(
-            ['id', 'name', 'url', 'website_published', 'website_indexed', 'date_publish', 'menu_ids', 'is_homepage', 'website_id'],
-        )
+    def get_page_properties(self):
+        self.ensure_one()
+        res = self.read([
+            'id', 'view_id', 'name', 'url', 'website_published', 'website_indexed', 'date_publish',
+            'menu_ids', 'is_homepage', 'website_id', 'visibility', 'groups_id'
+        ])[0]
+        if not res['groups_id']:
+            res['group_id'] = self.env.ref('base.group_user').name_get()[0]
+        elif len(res['groups_id']) == 1:
+            res['group_id'] = self.env['res.groups'].browse(res['groups_id']).name_get()[0]
+        del res['groups_id']
+
+        res['visibility_password'] = res['visibility'] == 'password' and self.visibility_password_display or ''
+        return res
 
     def get_view_identifier(self):
         """ Get identifier of this page view that may be used to render it """
@@ -117,7 +126,15 @@ class Page(models.Model):
             'website_indexed': data['website_indexed'],
             'date_publish': data['date_publish'] or None,
             'is_homepage': data['is_homepage'],
+            'visibility': data['visibility'],
         }
+        if page.visibility == 'restricted_group' and data['visibility'] != "restricted_group":
+            w_vals['groups_id'] = False
+        elif 'group_id' in data:
+            w_vals['groups_id'] = [data['group_id']]
+        if 'visibility_pwd' in data:
+            w_vals['visibility_password_display'] = data['visibility_pwd'] or ''
+
         page.with_context(no_cow=True).write(w_vals)
 
         # Create redirect if needed

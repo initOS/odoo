@@ -22,6 +22,9 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
         'keyup input#page_name': '_onNameChanged',
         'keyup input#page_url': '_onUrlChanged',
         'change input#create_redirect': '_onCreateRedirectChanged',
+        'click input#visibility_password': '_onPasswordClicked',
+        'change input#visibility_password': '_onPasswordChanged',
+        'change select#visibility': '_onVisibilityChanged',
     }),
 
     /**
@@ -78,11 +81,12 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
 
         defs.push(this._rpc({
             model: 'website.page',
-            method: 'get_page_info',
+            method: 'get_page_properties',
             args: [this.page_id],
         }).then(function (page) {
-            page[0].url = _.str.startsWith(page[0].url, '/') ? page[0].url.substring(1) : page[0].url;
-            self.page = page[0];
+            page.url = _.str.startsWith(page.url, '/') ? page.url.substring(1) : page.url;
+            page.hasSingleGroup = page.group_id !== undefined;
+            self.page = page;
         }));
 
         defs.push(this._rpc({
@@ -105,6 +109,14 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
         this.$('.ask_for_redirect').addClass('d-none');
         this.$('.redirect_type').addClass('d-none');
         this.$('.warn_about_call').addClass('d-none');
+
+        if (this.page.visibility !== 'password') {
+            this.$('.show_visibility_password').addClass('d-none');
+        }
+        if (this.page.visibility !== 'restricted_group') {
+            this.$('.show_group_id').addClass('d-none');
+        }
+        this.autocompleteWithGroups(this.$('#group_id'));
 
         defs.push(this._getPageDependencies(this.page_id)
         .then(function (dependencies) {
@@ -223,8 +235,23 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
             create_redirect: this.$('#create_redirect').prop('checked'),
             redirect_type: this.$('#redirect_type').val(),
             website_indexed: this.$('#is_indexed').prop('checked'),
+            visibility: this.$('#visibility').val(),
             date_publish: date_publish,
         };
+
+        if (this.page.hasSingleGroup && this.$('#visibility').val() === 'restricted_group') {
+            params['group_id'] = this.$('#group_id').data('group-id');
+        }
+        if (this.$('#visibility').val() === 'password') {
+            var field_pwd = $('#visibility_password');
+            if (!field_pwd.get(0).reportValidity()) {
+                return;
+            }
+            if (field_pwd.data('dirty')) {
+                params['visibility_pwd'] = field_pwd.val();
+            }
+        }
+
         this._rpc({
             model: 'website.page',
             method: 'save_page_info',
@@ -327,6 +354,38 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
         }
     },
 
+     /**
+     * Allows the given input to propose existing groups.
+     *
+     * @param {jQuery} $input
+     */
+    autocompleteWithGroups: function ($input) {
+        $input.autocomplete({
+            source: (request, response) => {
+                return this._rpc({
+                    model: 'res.groups',
+                    method: 'search_read',
+                    args: [[['name', 'ilike', request.term]], ['display_name']],
+                    kwargs: {
+                        limit: 15,
+                    },
+                }).then(founds => {
+                    founds = founds.map(g => ({'id': g['id'], 'label': g['display_name']}));
+                    response(founds);
+                });
+            },
+            change: (ev, ui) => {
+                var $target = $(ev.target);
+                if (!ui.item) {
+                    $target.val("");
+                    $target.removeData('group-id');
+                } else {
+                    $target.data('group-id', ui.item.id);
+                }
+            },
+        });
+    },
+
     //--------------------------------------------------------------------------
     // Handlers
     //--------------------------------------------------------------------------
@@ -357,6 +416,27 @@ var PagePropertiesDialog = weWidgets.Dialog.extend({
     _onCreateRedirectChanged: function () {
         var createRedirect = this.$('input#create_redirect').prop('checked');
         this.$('.redirect_type').toggleClass('d-none', !createRedirect);
+    },
+    /**
+     * @private
+     */
+    _onVisibilityChanged: function (ev) {
+        this.$('.show_visibility_password').toggleClass('d-none', ev.target.value !== 'password');
+        this.$('.show_group_id').toggleClass('d-none', ev.target.value !== 'restricted_group');
+        this.$('#visibility_password').attr('required', ev.target.value === 'password');
+    },
+    /**
+     * @private
+     */
+    _onPasswordClicked: function (ev) {
+        ev.target.value = '';
+        this._onPasswordChanged();
+    },
+    /**
+     * @private
+     */
+    _onPasswordChanged: function () {
+        this.$('#visibility_password').data('dirty', 1);
     },
 });
 
