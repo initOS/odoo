@@ -585,8 +585,8 @@ class ExtendedLeaf(object):
             previous_alias = alias
             if context[5]:
                 alias += "__" + context[4]
-                conditions.append('"%s"."id"="%s__m2m"."%s"' % (previous_alias, previous_alias, context[2]))
-                conditions.append('"%s__m2m"."%s"="%s"."id"' % (previous_alias, context[3], alias))
+                conditions.append('"%s"."id"="%s__%s__m2m"."%s"' % (previous_alias, previous_alias, self._models[1]._table, context[2]))
+                conditions.append('"%s__%s__m2m"."%s"="%s"."id"' % (previous_alias, self._models[1]._table, context[3], alias))
             else:
                 alias += '__' + context[4]
                 conditions.append('"%s"."%s"="%s"."%s"' % (previous_alias, context[2], alias, context[3]))
@@ -598,8 +598,8 @@ class ExtendedLeaf(object):
         links = []
         for context in self.join_context:
             if context[5]:
-                links.append((context[5], "m2m"))
-                alias, alias_statement = generate_table_alias(self._models[0]._table, links)
+                links.append((context[5], self._models[1]._table))
+                alias, alias_statement = generate_table_alias(self._models[0]._table, links + [(context[5], "m2m")])
                 tables.add(alias_statement)
 
                 links[-1] = (context[1]._table, context[4])
