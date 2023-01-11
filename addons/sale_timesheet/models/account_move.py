@@ -116,6 +116,7 @@ class AccountMoveLine(models.Model):
         timesheet_read_group = self.sudo().env['account.analytic.line']._read_group([
             ('timesheet_invoice_id.move_type', '=', 'out_invoice'),
             ('timesheet_invoice_id.state', '=', 'draft'),
+            ('timesheet_invoice_line_id', 'in', self.ids),
             ('timesheet_invoice_id', 'in', self.move_id.ids)],
             ['timesheet_invoice_id', 'so_line', 'ids:array_agg(id)'],
             ['timesheet_invoice_id', 'so_line'],
