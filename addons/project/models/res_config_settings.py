@@ -24,6 +24,11 @@ class ResConfigSettings(models.TransientModel):
         related='company_id.analytic_plan_id',
     )
 
+    project_rename_analytic_account = fields.Boolean(
+        related="company_id.project_rename_analytic_account",
+        readonly=False,
+    )
+
     @api.model
     def _get_basic_project_domain(self):
         return []

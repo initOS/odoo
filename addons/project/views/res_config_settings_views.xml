@@ -132,6 +132,17 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="col-12 col-lg-6 o_setting_box" id="rename_analytic_account_setting">
+                                <div class="o_setting_left_pane">
+                                    <field name="project_rename_analytic_account" />
+                                </div>
+                                <div class="o_setting_right_pane">
+                                    <label for="project_rename_analytic_account" />
+                                    <div class="text-muted">
+                                        Automatic Renaming of Analytic Account
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </xpath>

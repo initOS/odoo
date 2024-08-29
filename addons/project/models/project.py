@@ -657,7 +657,11 @@ class Project(models.Model):
         if 'active' in vals:
             # archiving/unarchiving a project does it on its tasks, too
             self.with_context(active_test=False).mapped('tasks').write({'active': vals['active']})
-        if 'name' in vals and self.analytic_account_id:
+        if (
+            "name" in vals
+            and self.analytic_account_id
+            and self.env.company.project_rename_analytic_account
+        ):
             projects_read_group = self.env['project.project']._read_group(
                 [('analytic_account_id', 'in', self.analytic_account_id.ids)],
                 ['analytic_account_id'],

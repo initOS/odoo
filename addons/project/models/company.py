@@ -14,6 +14,11 @@ class ResCompany(models.Model):
         compute="_compute_analytic_plan_id",
         help="Default Plan for a new analytic account for projects")
 
+    project_rename_analytic_account = fields.Boolean(
+        default=True,
+        help="Rename Analytic Account when renaming Project",
+    )
+
     def _compute_analytic_plan_id(self):
         for company in self:
             default_plan = self.env['ir.config_parameter'].with_company(company).sudo().get_param("default_analytic_plan_id_%s" % company.id)
