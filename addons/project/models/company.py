@@ -15,6 +15,7 @@ class ResCompany(models.Model):
         help="Default Plan for a new analytic account for projects")
 
     project_rename_analytic_account = fields.Boolean(
+        "Rename Analytic Account",
         default=True,
         help="Rename Analytic Account when renaming Project",
     )

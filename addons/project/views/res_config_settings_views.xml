@@ -139,7 +139,7 @@
                                 <div class="o_setting_right_pane">
                                     <label for="project_rename_analytic_account" />
                                     <div class="text-muted">
-                                        Automatic Renaming of Analytic Account
+                                        Rename the analytic account if it's only linked to one project and the project will be renamed
                                     </div>
                                 </div>
                             </div>
