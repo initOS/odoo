@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
-from odoo.tools.misc import format_duration
 from odoo import _, api, fields, models
+from odoo.tools.misc import format_duration
 
 
 class HRLeaveType(models.Model):
@@ -12,6 +12,15 @@ class HRLeaveType(models.Model):
     overtime_deductible = fields.Boolean(
         "Deduct Extra Hours", default=False,
         help="Once a time off of this type is approved, extra hours in attendances will be deducted.")
+    overtime_overbooking = fields.Integer("Overbooking of Extra Hours", default=0)
+
+    _sql_constraints = [
+        (
+            "check_overtime",
+            "CHECK(overtime_overbooking >= 0)",
+            "The overbooking of overtime can't be negative",
+        ),
+    ]
 
     def name_get(self):
         # Exclude hours available in allocation contexts, it might be confusing otherwise
