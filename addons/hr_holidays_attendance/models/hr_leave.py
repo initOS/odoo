@@ -4,7 +4,7 @@
 from collections import defaultdict
 from datetime import timedelta
 
-from odoo import api, fields, models, _
+from odoo import _, api, fields, models
 from odoo.exceptions import ValidationError
 from odoo.tools import float_round
 
@@ -42,8 +42,9 @@ class HRLeave(models.Model):
             employee = leave.employee_id
             duration = leave.number_of_hours_display
             overtime_duration = leave.overtime_id.sudo().duration
+            overtime = leave.holiday_status_id.overtime_overbooking
             if overtime_duration != -1 * duration:
-                if duration > employee.total_overtime - overtime_duration:
+                if duration > employee.total_overtime - overtime_duration + overtime:
                     raise ValidationError(_('The employee does not have enough extra hours to extend this leave.'))
                 leave.overtime_id.sudo().duration = -1 * duration
         return res
@@ -55,7 +56,8 @@ class HRLeave(models.Model):
                 continue
             employee = leave.employee_id.sudo()
             duration = leave.number_of_hours_display
-            if duration > employee.total_overtime:
+            overtime = leave.holiday_status_id.overtime_overbooking
+            if duration > employee.total_overtime + overtime:
                 if employee.user_id == self.env.user:
                     raise ValidationError(_('You do not have enough extra hours to request this leave'))
                 raise ValidationError(_('The employee does not have enough extra hours to request this leave.'))
@@ -69,7 +71,10 @@ class HRLeave(models.Model):
 
     def action_draft(self):
         overtime_leaves = self.filtered('overtime_deductible')
-        if any([l.employee_overtime < float_round(l.number_of_hours_display, 2) for l in overtime_leaves]):
+        if any(
+            l.employee_overtime + l.holiday_status_id.overtime_overbooking < float_round(l.number_of_hours_display, 2)
+            for l in overtime_leaves
+        ):
             if self.employee_id.user_id.id == self.env.user.id:
                 raise ValidationError(_('You do not have enough extra hours to request this leave'))
             raise ValidationError(_('The employee does not have enough extra hours to request this leave.'))
