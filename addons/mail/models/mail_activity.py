@@ -469,6 +469,8 @@ class MailActivity(models.Model):
     # ------------------------------------------------------
     # Business Methods
     # ------------------------------------------------------
+    def get_partners_to_notify(self):
+        return self.user_id.partner_id
 
     def action_notify(self):
         if not self:
@@ -491,7 +493,7 @@ class MailActivity(models.Model):
             record = activity.env[activity.res_model].browse(activity.res_id)
             if activity.user_id:
                 record.message_notify(
-                    partner_ids=activity.user_id.partner_id.ids,
+                    partner_ids=activity.get_partners_to_notify().ids,
                     body=body,
                     record_name=activity.res_name,
                     model_description=model_description,
