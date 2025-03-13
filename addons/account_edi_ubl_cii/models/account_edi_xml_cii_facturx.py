@@ -1,11 +1,17 @@
 # -*- coding: utf-8 -*-
-from odoo import models, _
-from odoo.tools import DEFAULT_SERVER_DATE_FORMAT, float_repr, is_html_empty, html2plaintext, cleanup_xml_node
-from lxml import etree
-
+import logging
 from datetime import datetime
 
-import logging
+from lxml import etree
+
+from odoo import _, models
+from odoo.tools import (
+    DEFAULT_SERVER_DATE_FORMAT,
+    cleanup_xml_node,
+    float_repr,
+    html2plaintext,
+    is_html_empty,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -250,8 +256,8 @@ class AccountEdiXmlCII(models.AbstractModel):
 
         role = invoice_form.journal_id.type == 'purchase' and 'SellerTradeParty' or 'BuyerTradeParty'
         name = self._find_value(f"//ram:{role}/ram:Name", tree)
-        mail = self._find_value(f"//ram:{role}//ram:URIID[@schemeID='SMTP']", tree)
-        vat = self._find_value(f"//ram:{role}/ram:SpecifiedTaxRegistration/ram:ID", tree)
+        mail = self._find_value(f"//ram:{role}//ram:URIID", tree)
+        vat = self._find_value(f"//ram:{role}/ram:SpecifiedTaxRegistration/ram:ID[string-length(text()) > 5]", tree)
         phone = self._find_value(f"//ram:{role}/ram:DefinedTradeContact/ram:TelephoneUniversalCommunication/ram:CompleteNumber", tree)
         self._import_retrieve_and_fill_partner(invoice_form, name=name, phone=phone, mail=mail, vat=vat)
 
