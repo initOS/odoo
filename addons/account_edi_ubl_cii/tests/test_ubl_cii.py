@@ -3,6 +3,7 @@
 
 from lxml import etree
 
+from odoo import field
 from odoo.tests import tagged
 from odoo.tools import file_open
 
@@ -217,3 +218,100 @@ class TestAccountEdiUblCii(AccountTestInvoicingCommon):
             'udt': "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"
         })
         self.assertEqual(actual_delivery_date.text, '20241231')
+
+    def test_billing_date_in_cii_xml(self):
+        invoice = self.env['account.move'].create({
+            'partner_id': self.partner_a.id,
+            'move_type': 'out_invoice',
+            'invoice_date': "2024-12-01",
+            'invoice_date_due': "2024-12-31",
+            'invoice_line_ids': [Command.create({'product_id': self.product_a.id})],
+        })
+        invoice.action_post()
+        invoice.invoice_date_due = fields.Date.from_string('2024-12-31')
+
+        xml_attachment = self.env['ir.attachment'].create({
+            'raw': self.env['account.edi.xml.cii']._export_invoice(invoice)[0],
+            'name': 'test_invoice.xml',
+        })
+        xml_tree = etree.fromstring(xml_attachment.raw)
+        start_date = xml_tree.find('.//ram:BillingSpecifiedPeriod/ram:StartDateTime/udt:DateTimeString', {
+            'rsm': "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100",
+            'ram': "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100",
+            'udt': "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"
+        })
+        end_date = xml_tree.find('.//ram:BillingSpecifiedPeriod/ram:EndDateTime/udt:DateTimeString', {
+            'rsm': "urn:un:unece:uncefact:data:standard:CrossIndustryInvoice:100",
+            'ram': "urn:un:unece:uncefact:data:standard:ReusableAggregateBusinessInformationEntity:100",
+            'udt': "urn:un:unece:uncefact:data:standard:UnqualifiedDataType:100"
+        })
+        self.assertEqual(start_date.text, '20241201')
+        self.assertEqual(end_date.text, '20241231')
+
+    def test_import_partner_fields(self):
+        """ We are going to import the e-invoice and check partner is correctly imported."""
+        self.env.ref('base.EUR').active = True  # EUR might not be active and is used in the xml testing file
+        file_path = "bis3_bill_example.xml"
+        file_path = f"{self.test_module}/tests/test_files/{file_path}"
+        with file_open(file_path, 'rb') as file:
+            xml_attachment = self.env['ir.attachment'].create({
+                'mimetype': 'application/xml',
+                'name': 'test_invoice.xml',
+                'raw': file.read(),
+            })
+
+        bill = self.import_attachment(xml_attachment, self.company_data["default_journal_purchase"])
+
+        self.assertRecordValues(bill.partner_id, [{
+            'name': "ALD Automotive LU",
+            'phone': False,
+            'email': 'adl@test.com',
+            'vat': 'LU12977109',
+            'street': '270 rte d\'Arlon',
+            'street2': False,
+            'city': 'Strassen',
+            'zip': '8010',
+        }])
+
+    def test_import_bill_without_tax(self):
+        """ Test that no tax is set (even the default one) when importing a bill without tax."""
+        self.env.ref('base.EUR').active = True  # EUR might not be active and is used in the xml testing file
+        file_path = "bis3_bill_without_tax.xml"
+        file_path = f"{self.test_module}/tests/test_files/{file_path}"
+        with file_open(file_path, 'rb') as file:
+            xml_attachment = self.env['ir.attachment'].create({
+                'mimetype': 'application/xml',
+                'name': 'test_invoice.xml',
+                'raw': file.read(),
+            })
+        purchase_tax = self.env['account.tax'].create({
+            'type_tax_use': 'purchase',
+            'name': 'purchase_tax_10',
+            'amount': 10,
+        })
+        self.company_data['default_account_expense'].tax_ids = purchase_tax.ids
+
+        bill = self.import_attachment(xml_attachment, self.company_data["default_journal_purchase"])
+
+        self.assertRecordValues(bill.invoice_line_ids, [{
+            'amount_currency': 100.00,
+            'quantity': 1.0,
+            'tax_ids': self.env['account.tax'],
+        }])
+
+    def test_import_discount(self):
+        invoice = self.env['account.move'].create({
+            'partner_id': self.partner_a.id,
+            'move_type': 'out_invoice',
+            'invoice_line_ids': [(0, 0, {
+                'product_id': self.product_a.id,
+                'quantity': 3,
+                'price_unit': 11.34,
+            })],
+        })
+        xml_attachment = self.env['ir.attachment'].create({
+            'raw': self.env['account.edi.xml.cii']._export_invoice(invoice)[0],
+            'name': 'test_invoice.xml',
+        })
+        imported_invoice = self.import_attachment(xml_attachment, self.company_data["default_journal_sale"])
+        self.assertFalse(imported_invoice.invoice_line_ids.discount)  # if slight rounding error won't be falsy

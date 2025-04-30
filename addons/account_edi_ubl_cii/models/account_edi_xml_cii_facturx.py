@@ -185,6 +185,9 @@ class AccountEdiXmlCII(models.AbstractModel):
                 and invoice.contract_reference else '',
         }
 
+        template_values['billing_start'] = invoice.invoice_date
+        template_values['billing_end'] = invoice.invoice_date_due
+
         # data used for IncludedSupplyChainTradeLineItem / SpecifiedLineTradeSettlement
         for line_vals in template_values['invoice_line_vals_list']:
             line = line_vals['line']
