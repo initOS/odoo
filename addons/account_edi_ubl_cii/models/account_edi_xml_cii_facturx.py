@@ -95,11 +95,6 @@ class AccountEdiXmlCII(models.AbstractModel):
                 return _("When the Canary Island General Indirect Tax (IGIC) applies, the tax rate on "
                          "each invoice line should be greater than 0.")
 
-    def _get_scheduled_delivery_time(self, invoice):
-        # don't create a bridge only to get line.sale_line_ids.order_id.picking_ids.date_done
-        # line.sale_line_ids.order_id.picking_ids.scheduled_date or line.sale_line_ids.order_id.commitment_date
-        return invoice.delivery_date or invoice.invoice_date
-
     def _get_invoicing_period(self, invoice):
         # get the Invoicing period (BG-14): a list of dates covered by the invoice
         # don't create a bridge to get the date range from the timesheet_ids
@@ -169,7 +164,6 @@ class AccountEdiXmlCII(models.AbstractModel):
             'format_date': format_date,
             'format_monetary': format_monetary,
             'is_html_empty': is_html_empty,
-            'scheduled_delivery_time': self._get_scheduled_delivery_time(invoice),
             'intracom_delivery': False,
             'ExchangedDocument_vals': self._get_exchanged_document_vals(invoice),
             'seller_specified_legal_organization': seller_siret,
