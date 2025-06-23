@@ -113,12 +113,8 @@ class AccountEdiFormat(models.Model):
             xml_content, errors = builder._export_invoice(invoice)
 
             if errors:
-                raise UserError(
-                    self._format_error_message(
-                        _("Errors occurred while creating the EDI document (format: %s):", builder._description),
-                        errors,
-                    )
-                )
+                lines = [_("Errors occurred while creating the EDI document (format: %s):", builder._description)] + list(errors)
+                raise UserError("\n".join(lines))
 
             # DEBUG: send directly to the test platform (the one used by ecosio)
             #response = self.env['account.edi.common']._check_xml_ecosio(invoice, xml_content, builder._export_invoice_ecosio_schematrons())
