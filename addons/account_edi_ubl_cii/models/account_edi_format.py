@@ -2,6 +2,7 @@
 # Part of Odoo. See LICENSE file for full copyright and licensing details.
 
 from odoo import models, fields, _
+from odoo.exceptions import UserError
 from odoo.tools import str2bool
 from odoo.addons.account_edi_ubl_cii.models.account_edi_common import COUNTRY_EAS
 
@@ -110,6 +111,14 @@ class AccountEdiFormat(models.Model):
             builder = self._get_xml_builder(invoice.company_id)
             # For now, the errors are not displayed anywhere, don't want to annoy the user
             xml_content, errors = builder._export_invoice(invoice)
+
+            if errors:
+                raise UserError(
+                    self._format_error_message(
+                        _("Errors occurred while creating the EDI document (format: %s):", builder._description),
+                        errors,
+                    )
+                )
 
             # DEBUG: send directly to the test platform (the one used by ecosio)
             #response = self.env['account.edi.common']._check_xml_ecosio(invoice, xml_content, builder._export_invoice_ecosio_schematrons())
