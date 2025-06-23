@@ -185,7 +185,7 @@
                         <ram:BuyerTradeParty>
                             <!-- Address. -->
                             <t t-call="account_edi_ubl_cii.account_invoice_partner_facturx_export_22">
-                                <t t-set="partner" t-value="record.commercial_partner_id"/>
+                                <t t-set="partner" t-value="record.partner_id"/>
                                 <t t-set="specified_legal_organization_val" t-value="buyer_specified_legal_organization"/>
                             </t>
 
@@ -215,13 +215,6 @@
                                 <t t-set="hide_dtc" t-value="document_context_id == 'urn:cen.eu:en16931:2017#compliant#urn:xoev-de:kosit:standard:xrechnung_2.2'"/>
                             </t>
                         </ram:ShipToTradeParty>
-
-                        <ram:ActualDeliverySupplyChainEvent t-if="scheduled_delivery_time">
-                            <ram:OccurrenceDateTime>
-                                <udt:DateTimeString t-att-format="102"
-                                                    t-esc="format_date(scheduled_delivery_time)"/>
-                            </ram:OccurrenceDateTime>
-                        </ram:ActualDeliverySupplyChainEvent>
                     </ram:ApplicableHeaderTradeDelivery>
 
                     <!-- Taxes. -->
