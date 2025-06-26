@@ -52,6 +52,11 @@ class AccountEdiXmlCII(models.AbstractModel):
             'seller_postal_address': self._check_required_fields(
                 vals['record']['company_id']['partner_id']['commercial_partner_id'], 'country_id'
             ),
+            # (BT-10)
+            'buyer_reference': self._check_required_fields(
+                vals, 'buyer_reference',
+                _("The reference field of the buyer is missing.")
+            ),
             # [BR-CO-26]-In order for the buyer to automatically identify a supplier, the Seller identifier (BT-29),
             # the Seller legal registration identifier (BT-30) and/or the Seller VAT identifier (BT-31) shall be present.
             'seller_identifier': self._check_required_fields(
