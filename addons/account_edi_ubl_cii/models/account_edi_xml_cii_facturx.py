@@ -34,9 +34,10 @@ class AccountEdiXmlCII(models.AbstractModel):
 
     def _export_invoice_constraints(self, invoice, vals):
         constraints = self._invoice_constraints_common(invoice)
-        if invoice.move_type == 'out_invoice':
+        if invoice.move_type in ('out_invoice', 'out_refund'):
             # [BR-DE-1] An Invoice must contain information on "PAYMENT INSTRUCTIONS" (BG-16)
             # first check that a partner_bank_id exists, then check that there is an account number
+            # FIX: Validation for these fields also happen on credit notes
             constraints.update({
                 'seller_payment_instructions_1': self._check_required_fields(
                     vals['record'], 'partner_bank_id'
