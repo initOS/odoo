@@ -243,7 +243,10 @@ class AccountEdiXmlCII(models.AbstractModel):
 
         # Fixed taxes: set the total adjusted amounts on the document level
         template_values['tax_basis_total_amount'] = balance_sign * tax_details['base_amount_currency']
-        template_values['tax_total_amount'] = balance_sign * tax_details['tax_amount_currency']
+        if invoice.currency_id.is_zero(tax_details['tax_amount_currency']):
+            template_values['tax_total_amount'] = 0.0
+        else:
+            template_values['tax_total_amount'] = balance_sign * tax_details['tax_amount_currency']
 
         return template_values
 
