@@ -124,7 +124,7 @@ class PaypalController(http.Controller):
                 'at': tx_sudo.provider_id.paypal_pdt_token,
             }
             try:
-                response = requests.post(url, data=payload, timeout=10)
+                response = requests.post(url, data=payload, timeout=20)
                 response.raise_for_status()
             except (requests.exceptions.ConnectionError, requests.exceptions.HTTPError):
                 raise Forbidden("PayPal: Encountered an error when verifying PDT origin")
