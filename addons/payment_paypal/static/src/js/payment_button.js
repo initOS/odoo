@@ -3,6 +3,7 @@
 import paymentButton from '@payment/js/payment_button';
 
 paymentButton.include({
+    selector: '[name="o_payment_submit_button"]',
 
     /**
      * Hide the disabled PayPal button and show the enabled one.
@@ -11,14 +12,16 @@ paymentButton.include({
      * @private
      * @return {void}
      */
-    _setEnabled() {
+    _enable() {
         if (!this.paymentButton.dataset.isPaypal) {
             this._super();
             return;
         }
 
-        document.getElementById('o_paypal_disabled_button').classList.add('d-none');
-        document.getElementById('o_paypal_enabled_button').classList.remove('d-none');
+        if (this._canSubmit()) {
+            document.getElementById('o_paypal_disabled_button').classList.add('d-none');
+            document.getElementById('o_paypal_enabled_button').classList.remove('d-none');
+        }
     },
 
     /**

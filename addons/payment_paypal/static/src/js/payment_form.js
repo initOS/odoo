@@ -1,8 +1,9 @@
+/** @odoo-module **/
 /* global paypal */
 
 import { loadJS } from '@web/core/assets';
 import { _t } from '@web/core/l10n/translation';
-import { rpc, RPCError } from '@web/core/network/rpc';
+import { jsonrpc, RPCError } from '@web/core/network/rpc_service';
 
 import paymentForm from '@payment/js/payment_form';
 
@@ -184,7 +185,7 @@ paymentForm.include({
         const orderID = data.orderID;
         const { provider_id } = this.inlineFormValues
 
-        await rpc('/payment/paypal/complete_order', {
+        await jsonrpc('/payment/paypal/complete_order', {
             'provider_id': provider_id,
             'order_id': orderID,
             'reference': this.paypalData[this.selectedOptionId].paypalTxRef,
