@@ -282,10 +282,12 @@ class HrAttendance(models.Model):
                 date_from = local_check_in.date()
                 date_to = local_check_out.date()
 
+            check_in_max = tz.localize(datetime.combine(date_to, datetime.max.time()))
+            check_out_min = tz.localize(datetime.combine(date_from, datetime.min.time()))
             domain_list.append(Domain.AND([
                 Domain('employee_id', '=', employee.id),
-                Domain('check_in', '<=', datetime.combine(date_to, datetime.max.time()).replace(tzinfo=tz).astimezone(utc).replace(tzinfo=None)),
-                Domain('check_out', '>=', datetime.combine(date_from, datetime.min.time()).replace(tzinfo=tz).astimezone(utc).replace(tzinfo=None)),
+                Domain('check_in', '<=', check_in_max.astimezone(utc).replace(tzinfo=None)),
+                Domain('check_out', '>=', check_out_min.astimezone(utc).replace(tzinfo=None)),
             ]))
         if not domain_list:
             return Domain.FALSE
