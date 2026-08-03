@@ -62,7 +62,7 @@ class HrEmployee(models.Model):
         for employee in unspent_overtime:
             overtime_data[employee.id]['unspent_compensable_overtime'] += unspent_overtime[employee]
 
-        all_overtimes = self.env['hr.attendance.overtime.line']._read_group(
+        all_overtimes = self.env['hr.attendance.overtime.line'].sudo()._read_group(
             domain=[
                 ('employee_id', 'in', self.ids),
             ],
